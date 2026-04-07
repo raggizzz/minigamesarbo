@@ -1,24 +1,41 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+// ============================================
+// ArboGame — Root Layout
+// ============================================
+
+import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { useGameStore } from '../src/store/gameStore';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const loadProgress = useGameStore((s) => s.loadProgress);
+
+  useEffect(() => {
+    loadProgress();
+  }, [loadProgress]);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <>
+      <StatusBar style="light" />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade',
+          contentStyle: { backgroundColor: '#1A1A2E' },
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="intro" />
+        <Stack.Screen name="levels" />
+        <Stack.Screen name="howtoplay" />
+        <Stack.Screen name="credits" />
+        <Stack.Screen
+          name="game/[levelId]"
+          options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen name="victory" />
+        <Stack.Screen name="defeat" />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    </>
   );
 }
