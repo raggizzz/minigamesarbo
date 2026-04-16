@@ -741,6 +741,12 @@ export default function GameplayScreen() {
     }
   };
   const handleBackToMenu = () => { if (timerRef.current) clearInterval(timerRef.current); router.replace('/levels'); };
+  const handleSceneLayout = useCallback((e: any) => {
+    const { width, height } = e.nativeEvent.layout;
+    setSceneLayout((prev) =>
+      prev.width === width && prev.height === height ? prev : { width, height }
+    );
+  }, []);
 
   if (!levelConfig) {
     return <View style={styles.container}><Text style={styles.errorText}>Nível não encontrado</Text></View>;
@@ -748,13 +754,6 @@ export default function GameplayScreen() {
 
   const bgImage = LEVEL_BACKGROUNDS[levelId] || LEVEL_BACKGROUNDS[1];
   // useCallback estável — evita re-criação a cada render e previne layout loops
-  const handleSceneLayout = useCallback((e: any) => {
-    const { width, height } = e.nativeEvent.layout;
-    setSceneLayout(prev =>
-      prev.width === width && prev.height === height ? prev : { width, height }
-    );
-  }, []);
-
   const isCompactViewport = sceneLayout.width <= 390 || sceneLayout.height <= 640;
 
   // ── Imagem quadrada: cabe totalmente em qualquer orientação ──

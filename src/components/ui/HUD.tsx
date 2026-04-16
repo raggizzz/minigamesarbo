@@ -67,7 +67,9 @@ export const HUD: React.FC<HUDProps> = ({
   const minutes = Math.floor(timeRemaining / 60);
   const seconds = timeRemaining % 60;
   const isLowTime = timeRemaining <= 15;
-  const statusLine = missionProgress ? `${objective}  ·  ${missionProgress}` : objective;
+  const statusLine = missionProgress ? `${objective} · ${missionProgress}` : objective;
+  const showCombo = combo >= 2;
+  const showInfestation = infestationLevel !== undefined;
 
   return (
     <View style={[styles.container, compact && styles.containerCompact]}>
@@ -76,7 +78,6 @@ export const HUD: React.FC<HUDProps> = ({
         style={[styles.topGradient, compact && styles.topGradientCompact]}
       />
 
-      {/* LINHA PRINCIPAL */}
       <View style={[styles.mainRow, compact && styles.mainRowCompact]}>
         <TouchableOpacity
           style={[styles.pauseBtn, compact && styles.pauseBtnCompact]}
@@ -86,7 +87,6 @@ export const HUD: React.FC<HUDProps> = ({
           <Text style={styles.pauseIcon}>⏸</Text>
         </TouchableOpacity>
 
-        {/* TEMPO */}
         <View style={[styles.hudChip, compact && styles.hudChipCompact, isLowTime && styles.hudChipDanger]}>
           <Text style={[styles.chipIcon, compact && styles.chipIconCompact]}>⏱</Text>
           <Text style={[styles.chipValue, compact && styles.chipValueCompact, isLowTime && styles.chipValueDanger]}>
@@ -94,62 +94,62 @@ export const HUD: React.FC<HUDProps> = ({
           </Text>
         </View>
 
-        {/* VIDAS */}
         <View style={styles.livesContainer}>
           {Array.from({ length: 3 }).map((_, i) => (
             <Heart key={i} filled={i < lives} compact={compact} />
           ))}
         </View>
 
-        {/* SCORE */}
         <View style={[styles.hudChip, compact && styles.hudChipCompact]}>
           <Text style={[styles.chipIcon, compact && styles.chipIconCompact]}>💎</Text>
           <Text style={[styles.chipValue, compact && styles.chipValueCompact]}>{score}</Text>
         </View>
       </View>
 
-      {/* COMBO + INFESTAÇÃO na mesma linha */}
-      {(combo >= 2 || infestationLevel !== undefined) ? (
-        <View style={[styles.secondRow, compact && styles.secondRowCompact]}>
-          {combo >= 2 ? (
-            <View style={styles.comboPill}>
+      <View
+        style={[
+          styles.secondRow,
+          compact && styles.secondRowCompact,
+          !showCombo && !showInfestation && styles.secondRowHidden,
+        ]}
+      >
+        {showCombo ? (
+          <View style={styles.comboPill}>
+            <LinearGradient
+              colors={['rgba(251,191,36,0.28)', 'rgba(251,191,36,0.1)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.comboPillGradient}
+            >
+              <Text style={[styles.comboText, compact && styles.comboTextCompact]}>🔥 x{combo} COMBO</Text>
+            </LinearGradient>
+          </View>
+        ) : null}
+
+        {showInfestation ? (
+          <View style={[styles.infestRow, compact && styles.infestRowCompact]}>
+            <Text style={[styles.infestLabel, compact && styles.infestLabelCompact]}>🦟</Text>
+            <View style={styles.barOuter}>
               <LinearGradient
-                colors={['rgba(251,191,36,0.28)', 'rgba(251,191,36,0.1)']}
+                colors={
+                  infestationLevel < 50
+                    ? ['#22C55E', '#16A34A']
+                    : infestationLevel < 75
+                      ? ['#FACC15', '#F59E0B']
+                      : ['#EF4444', '#DC2626']
+                }
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.comboPillGradient}
-              >
-                <Text style={[styles.comboText, compact && styles.comboTextCompact]}>🔥 x{combo} COMBO</Text>
-              </LinearGradient>
+                style={[styles.barFill, { width: `${Math.min(100, infestationLevel)}%` }]}
+              />
             </View>
-          ) : null}
+            <Text style={[styles.infestPct, compact && styles.infestPctCompact]}>
+              {Math.round(infestationLevel)}%
+            </Text>
+          </View>
+        ) : null}
+      </View>
 
-          {infestationLevel !== undefined ? (
-            <View style={[styles.infestRow, compact && styles.infestRowCompact]}>
-              <Text style={[styles.infestLabel, compact && styles.infestLabelCompact]}>🦟</Text>
-              <View style={styles.barOuter}>
-                <LinearGradient
-                  colors={
-                    infestationLevel < 50
-                      ? ['#22C55E', '#16A34A']
-                      : infestationLevel < 75
-                        ? ['#FACC15', '#F59E0B']
-                        : ['#EF4444', '#DC2626']
-                  }
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[styles.barFill, { width: `${Math.min(100, infestationLevel)}%` }]}
-                />
-              </View>
-              <Text style={[styles.infestPct, compact && styles.infestPctCompact]}>
-                {Math.round(infestationLevel)}%
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
-
-      {/* BARRA DE STATUS (objetivo + progresso) */}
       <View style={[styles.statusRibbon, compact && styles.statusRibbonCompact]}>
         <Text numberOfLines={1} style={[styles.statusText, compact && styles.statusTextCompact]}>
           🎯 {statusLine}
@@ -179,8 +179,6 @@ const styles = StyleSheet.create({
   topGradientCompact: {
     height: 68,
   },
-
-  // LINHA PRINCIPAL
   mainRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -258,17 +256,20 @@ const styles = StyleSheet.create({
   heartIconCompact: {
     fontSize: 17,
   },
-
-  // LINHA SECUNDÁRIA (combo + infestação)
   secondRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 24,
     marginTop: 5,
     gap: 8,
   },
   secondRowCompact: {
+    minHeight: 20,
     marginTop: 3,
     gap: 6,
+  },
+  secondRowHidden: {
+    opacity: 0,
   },
   comboPill: {
     borderRadius: 10,
@@ -329,8 +330,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     width: 26,
   },
-
-  // STATUS RIBBON (objetivo + progresso fundidos)
   statusRibbon: {
     marginTop: 5,
     alignSelf: 'stretch',
