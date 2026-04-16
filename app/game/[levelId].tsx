@@ -3,7 +3,7 @@
 // Full-screen responsive + scene-integrated
 // ============================================
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Dimensions,
   TouchableOpacity, Image,
@@ -580,13 +580,15 @@ export default function GameplayScreen() {
 
   useEffect(() => {
     if (!levelConfig || showBriefing) return;
+    // 1000ms em vez de 100ms — tempo exibido em segundos inteiros,
+    // não precisamos de 10 re-renders por segundo.
     timerRef.current = setInterval(() => {
       if (gameState.isPaused || gameState.isGameOver || gameState.isVictory) return;
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
       const remaining = Math.max(0, levelConfig.timeLimit - elapsed);
       updateTime(remaining);
-      if (levelId >= 4) updateInfestation(GAME_CONSTANTS.INFESTATION_RATE / 10);
-    }, 100);
+      if (levelId >= 4) updateInfestation(GAME_CONSTANTS.INFESTATION_RATE);
+    }, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [gameState.isGameOver, gameState.isPaused, gameState.isVictory, levelConfig, levelId, showBriefing, updateInfestation, updateTime]);
 
@@ -753,23 +755,18 @@ export default function GameplayScreen() {
   }
 
   const bgImage = LEVEL_BACKGROUNDS[levelId] || LEVEL_BACKGROUNDS[1];
-  // useCallback estável — evita re-criação a cada render e previne layout loops
   const isCompactViewport = sceneLayout.width <= 390 || sceneLayout.height <= 640;
-  const isDesktopViewport = sceneLayout.width >= 900 && sceneLayout.height >= 680;
 
-  // ── Imagem quadrada: cabe totalmente em qualquer orientação ──
-  // imgSize = menor dimensão → portrait: usa largura; landscape/PC: usa altura.
-  // Centraliza nos dois eixos para sempre mostrar a imagem inteira.
-  const imgMaxWidth = isDesktopViewport ? sceneLayout.width * 0.76 : sceneLayout.width;
-  const imgMaxHeight = isDesktopViewport ? sceneLayout.height * 0.9 : sceneLayout.height;
-  const imgSize = Math.min(imgMaxWidth, imgMaxHeight);
-  const imgRenderW = imgSize;
-  const imgRenderH = imgSize;
-  const imgOffsetX = (sceneLayout.width - imgSize) / 2;
-  const imgOffsetY = (sceneLayout.height - imgSize) / 2;
-  const backdropBlur = isDesktopViewport ? 6 : 20;
-  const backdropOpacity = isDesktopViewport ? 0.28 : 0.62;
-  const sceneOverlayOpacity = isDesktopViewport ? 0.14 : 0.22;
+  // useMemo — recalcula só quando o layout muda, nunca a cada re-render do timer
+  const { imgRenderW, imgRenderH, imgOffsetX, imgOffsetY } = useMemo(() => {
+    const size = Math.min(sceneLayout.width, sceneLayout.height);
+    return {
+      imgRenderW: size,
+      imgRenderH: size,
+      imgOffsetX: (sceneLayout.width - size) / 2,
+      imgOffsetY: (sceneLayout.height - size) / 2,
+    };
+  }, [sceneLayout.width, sceneLayout.height]);
   const deskStats = [
     { label: 'Tempo', value: `${gameState.timeRemaining}s` },
     { label: 'Vidas', value: `${gameState.lives}` },
@@ -806,21 +803,17 @@ export default function GameplayScreen() {
           {/* Fundo desfocado — cobre toda a sceneArea */}
           <Image
             source={bgImage}
-            style={[styles.sceneBackdrop, { opacity: backdropOpacity }]}
+            style={styles.sceneBackdrop}
             resizeMode="cover"
-            blurRadius={backdropBlur}
+            blurRadius={12}
           />
           {/* Overlay escuro para legibilidade */}
           <View
-            style={[styles.sceneOverlay, { backgroundColor: `rgba(0,0,0,${sceneOverlayOpacity})` }]}
+            style={[styles.sceneOverlay, { backgroundColor: 'rgba(0,0,0,0.25)' }]}
             pointerEvents="none"
           />
           <LinearGradient
-            colors={
-              isDesktopViewport
-                ? ['rgba(0,0,0,0.42)', 'rgba(0,0,0,0.02)', 'rgba(0,0,0,0.28)']
-                : ['rgba(0,0,0,0.65)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.55)']
-            }
+            colors={['rgba(0,0,0,0.65)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.55)']}
             locations={[0, 0.38, 1]}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
@@ -835,7 +828,7 @@ export default function GameplayScreen() {
               height: imgRenderH,
               overflow: 'hidden',
               backgroundColor: '#000',
-            }, isDesktopViewport && styles.sceneBgImageWrapperDesktop]}
+            }]}
           >
             <Image
               source={bgImage}

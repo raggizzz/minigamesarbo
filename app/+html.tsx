@@ -1,5 +1,5 @@
 // app/+html.tsx — Expo Router web HTML template
-// Define o fundo preto no body/html para nunca mostrar branco
+// Jogo mobile centrado em 480px max-width, fundo preto no resto
 
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
@@ -10,22 +10,49 @@ export default function Root({ children }: PropsWithChildren) {
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        {/* viewport fixo em 480px — evita escala estranha em PC */}
+        <meta name="viewport" content="width=480, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="theme-color" content="#000000" />
 
-        {/*
-          Reseta o scroll view para que não adicione fundo branco.
-          Também força html/body a ficarem pretos em toda extensão da página.
-        */}
         <ScrollViewStyleReset />
 
         <style dangerouslySetInnerHTML={{
           __html: `
-            html, body, #root {
-              background-color: #000 !important;
+            *, *::before, *::after { box-sizing: border-box; }
+
+            html {
+              background-color: #000;
               height: 100%;
               margin: 0;
               padding: 0;
+            }
+
+            body {
+              background-color: #000;
+              height: 100%;
+              margin: 0;
+              padding: 0;
+              display: flex;
+              justify-content: center;
+              align-items: flex-start;
               overflow: hidden;
+            }
+
+            /* Contém o app em até 480px, centrado com preto nas laterais */
+            #root {
+              background-color: #000;
+              width: 100%;
+              max-width: 480px;
+              height: 100%;
+              position: relative;
+              overflow: hidden;
+            }
+
+            /* Remove fundo branco padrão dos ScrollViews no web */
+            div[style*="overflow"] {
+              background-color: transparent !important;
             }
           `
         }} />
