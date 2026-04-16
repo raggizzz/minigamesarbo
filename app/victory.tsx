@@ -6,7 +6,7 @@ import React from 'react';
 import { ImageBackground, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LEVELS } from '../src/data/levels';
 import { getCampaignProfile } from '../src/data/campaign';
@@ -43,6 +43,7 @@ export default function VictoryScreen() {
   const levelConfig = LEVELS.find((level) => level.id === levelId);
   const bonusAchieved = params.bonusAchieved === 'true';
   const badgeUnlocked = params.badgeUnlocked === 'true';
+  const insets = useSafeAreaInsets();
 
   return (
     <ImageBackground
@@ -56,7 +57,7 @@ export default function VictoryScreen() {
         style={StyleSheet.absoluteFill}
       />
 
-      <SafeAreaView style={styles.safe}>
+      <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <Animated.View entering={FadeInDown.delay(200)} style={styles.titleContainer}>
           <Text style={styles.title}>{isLastLevel ? 'CAMPANHA COMPLETA!' : 'VITORIA!'}</Text>
           <Text style={styles.subtitle}>
@@ -153,13 +154,13 @@ export default function VictoryScreen() {
             fullWidth
           />
         </Animated.View>
-      </SafeAreaView>
+      </View>
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#000' },
   safe: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   titleContainer: { alignItems: 'center', marginBottom: 16 },
   title: {

@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TRAINING_MODES, TrainingChoice, TrainingMode, TrainingModeId } from '../src/data/trainingModes';
 
 type SessionState = {
@@ -80,6 +80,8 @@ export default function TrainingScreen() {
     setSession(null);
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
     <ImageBackground
       source={require('../assets/images/game/bg_menu.png')}
@@ -88,7 +90,7 @@ export default function TrainingScreen() {
     >
       <View style={styles.overlay} />
 
-      <SafeAreaView style={styles.safe}>
+      <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => (session ? exitToHub() : router.back())}>
             <Text style={styles.backText}>{session ? 'Voltar aos treinos' : 'Voltar'}</Text>
@@ -97,7 +99,7 @@ export default function TrainingScreen() {
         </View>
 
         {!session ? (
-          <ScrollView contentContainerStyle={styles.hubContent} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={styles.hubContent} style={styles.scrollTransparent} showsVerticalScrollIndicator={false}>
             <View style={styles.heroCard}>
               <Text style={styles.heroEyebrow}>CENTRAL DE TREINO</Text>
               <Text style={styles.heroTitle}>Mais jogos curtos para treinar olho, decisao e orientacao</Text>
@@ -209,13 +211,13 @@ export default function TrainingScreen() {
             </View>
           </View>
         ) : null}
-      </SafeAreaView>
+      </View>
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#000' },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(12, 11, 10, 0.38)',
@@ -245,6 +247,9 @@ const styles = StyleSheet.create({
     color: '#FFF7E5',
     fontSize: 22,
     fontWeight: '900',
+  },
+  scrollTransparent: {
+    backgroundColor: 'transparent',
   },
   hubContent: {
     width: '100%',

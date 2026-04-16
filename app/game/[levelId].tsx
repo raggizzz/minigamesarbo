@@ -14,7 +14,7 @@ import Animated, {
   withSequence, withSpring, withTiming,
 } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GAME_CONSTANTS } from '../../src/styles/theme';
 import { useGameStore, calculateStars } from '../../src/store/gameStore';
@@ -42,34 +42,34 @@ const LEVEL_BACKGROUNDS: Record<number, any> = {
 };
 
 const LEVEL2_TOOL_META: Record<string, {
-  code: string;
+  emoji: string;
   note: string;
   accent: string;
   tint: string;
 }> = {
   saco_lixo: {
-    code: 'SL',
-    note: 'Recolhe lixo e objetos que acumulam agua.',
-    accent: '#7D6240',
-    tint: '#F4E9D7',
+    emoji: '🗑️',
+    note: 'Recolhe lixo e objetos que acumulam água.',
+    accent: '#FCD34D',
+    tint: 'rgba(180,83,9,0.28)',
   },
   tampa: {
-    code: 'TP',
+    emoji: '🔒',
     note: 'Fecha recipientes que devem ficar cobertos.',
-    accent: '#486B7B',
-    tint: '#E8F0F3',
+    accent: '#93C5FD',
+    tint: 'rgba(37,99,235,0.28)',
   },
   pa: {
-    code: 'PA',
+    emoji: '⛏️',
     note: 'Remove folhas, barro e entulho acumulado.',
-    accent: '#8A6A3E',
-    tint: '#F5ECDD',
+    accent: '#C4B5FD',
+    tint: 'rgba(109,40,217,0.28)',
   },
   limpeza: {
-    code: 'LM',
-    note: 'Escova e higieniza locais com agua parada.',
-    accent: '#5B7F63',
-    tint: '#EBF3EA',
+    emoji: '🧽',
+    note: 'Escova e higieniza locais com água parada.',
+    accent: '#67E8F9',
+    tint: 'rgba(8,145,178,0.28)',
   },
 };
 
@@ -138,8 +138,10 @@ const Level2Gameplay: React.FC<{
   onProgressChange: (label: string) => void;
   areaWidth: number;
   areaHeight: number;
+  imgOffsetX: number;
+  imgOffsetY: number;
   compact: boolean;
-}> = ({ onCorrect, onWrong, onComplete, onProgressChange, areaWidth, areaHeight, compact }) => {
+}> = ({ onCorrect, onWrong, onComplete, onProgressChange, areaWidth, areaHeight, imgOffsetX, imgOffsetY, compact }) => {
   const [hazards, setHazards] = useState<Hazard[]>(
     LEVEL2_HAZARDS.map((h) => ({ ...h, solved: false }))
   );
@@ -197,9 +199,8 @@ const Level2Gameplay: React.FC<{
         const SIZE = compact
           ? (selected ? 52 : 44)
           : (selected ? 58 : 50);
-        const effectiveHeight = compact ? areaHeight - 42 : areaHeight - 18;
-        const cx = hazard.position.x * areaWidth - SIZE / 2;
-        const cy = hazard.position.y * effectiveHeight - SIZE / 2;
+        const cx = imgOffsetX + hazard.position.x * areaWidth - SIZE / 2;
+        const cy = imgOffsetY + hazard.position.y * areaHeight - SIZE / 2;
 
         return (
           <TouchableOpacity
@@ -214,15 +215,15 @@ const Level2Gameplay: React.FC<{
             disabled={hazard.solved}
             activeOpacity={0.7}
           >
-            {!hazard.solved ? <View style={styles.level2PingRing} /> : null}
+            {!hazard.solved ? <View style={[styles.level2PingRing, selected && styles.level2PingRingSelected]} /> : null}
             <View pointerEvents="none" style={styles.level2VisualMask}>
               {hazard.solved ? (
                 <View style={styles.level2SolvedDot}>
-                  <Text style={styles.level2SolvedText}>OK</Text>
+                  <Text style={styles.level2SolvedEmoji}>✅</Text>
                 </View>
               ) : (
                 <View style={[styles.level2Marker, selected && styles.level2MarkerSelected]}>
-                  <Text style={[styles.level2MarkerText, selected && styles.level2MarkerTextSelected]}>!</Text>
+                  <Text style={styles.level2MarkerEmoji}>🦟</Text>
                 </View>
               )}
             </View>
@@ -272,10 +273,8 @@ const Level2Gameplay: React.FC<{
                   onPress={() => handleSolutionPress(sol.type)}
                   activeOpacity={0.82}
                 >
-                  <View style={[styles.toolBadge, compact && styles.toolBadgeCompact, { borderColor: meta.accent }]}>
-                    <Text style={[styles.toolBadgeText, { color: meta.accent }]}>{meta.code}</Text>
-                  </View>
-                  <Text numberOfLines={2} style={[styles.toolChoiceLabel, compact && styles.toolChoiceLabelCompact]}>{sol.label}</Text>
+                  <Text style={styles.toolBadgeEmoji}>{meta.emoji}</Text>
+                  <Text numberOfLines={2} style={[styles.toolChoiceLabel, compact && styles.toolChoiceLabelCompact, { color: meta.accent }]}>{sol.label}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -442,10 +441,10 @@ const Level4Gameplay: React.FC<{
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={point.completed ? ['#DCEEDB', '#CDE4C8'] : ['#FFF9EE', '#F1E5CC']}
+              colors={point.completed ? ['#22C55E', '#16A34A'] : ['#FFFFFF', '#F3F4F6']}
               style={styles.mapPinInner}
             >
-              <Text style={styles.mapPinEmoji}>{point.completed ? 'OK' : point.emoji}</Text>
+              <Text style={styles.mapPinEmoji}>{point.completed ? '✅' : point.emoji}</Text>
             </LinearGradient>
             <Text style={[styles.mapPinLabel, point.completed && styles.mapPinLabelDone]}>
               {point.label}
@@ -547,6 +546,7 @@ export default function GameplayScreen() {
     togglePause, setVictory, setGameOver, completeLevel, unlockBadge,
   } = useGameStore();
 
+  const insets = useSafeAreaInsets();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(Date.now());
   const lastActionTimeRef = useRef<number>(Date.now());
@@ -746,37 +746,14 @@ export default function GameplayScreen() {
   const bgImage = LEVEL_BACKGROUNDS[levelId] || LEVEL_BACKGROUNDS[1];
   const isCompactViewport = sceneLayout.width <= 390 || sceneLayout.height <= 640;
 
-  const imageAspect = 1; // square images
-  let imgRenderW = sceneLayout.width;
-  let imgRenderH = sceneLayout.width * (1 / imageAspect); // = sceneLayout.width for square
-  let imgOffsetX = 0;
-  let imgOffsetY = Math.max(16, sceneLayout.height * 0.05);
-  if (imgRenderH > sceneLayout.height) {
-    imgRenderH = sceneLayout.height;
-    imgRenderW = sceneLayout.height * imageAspect;
-    imgOffsetX = (sceneLayout.width - imgRenderW) / 2;
-    imgOffsetY = 0;
-  }
-  const reservedBottomSpace = levelId === 2
-    ? (isCompactViewport ? 218 : sceneLayout.height < 520 ? 176 : 162)
-    : levelId === 3
-      ? 0
-      : (isCompactViewport ? 192 : 0);
-
-  if (reservedBottomSpace > 0) {
-    const maxImageSize = Math.max(250, sceneLayout.height - reservedBottomSpace);
-    if (imgRenderH > maxImageSize) {
-      imgRenderH = maxImageSize;
-      imgRenderW = maxImageSize * imageAspect;
-      imgOffsetX = (sceneLayout.width - imgRenderW) / 2;
-      imgOffsetY = isCompactViewport ? 6 : 10;
-    }
-  }
-
-  const deskTop = Math.min(
-    Math.max(imgOffsetY + imgRenderH + 12, sceneLayout.height * 0.58),
-    sceneLayout.height - 220
-  );
+  // ── Imagem quadrada: cabe totalmente em qualquer orientação ──
+  // imgSize = menor dimensão → portrait: usa largura; landscape/PC: usa altura.
+  // Centraliza nos dois eixos para sempre mostrar a imagem inteira.
+  const imgSize = Math.min(sceneLayout.width, sceneLayout.height);
+  const imgRenderW = imgSize;
+  const imgRenderH = imgSize;
+  const imgOffsetX = (sceneLayout.width - imgSize) / 2;
+  const imgOffsetY = (sceneLayout.height - imgSize) / 2;
   const deskStats = [
     { label: 'Tempo', value: `${gameState.timeRemaining}s` },
     { label: 'Vidas', value: `${gameState.lives}` },
@@ -789,7 +766,7 @@ export default function GameplayScreen() {
     <View style={styles.container}>
       <StatusBar hidden />
 
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.safeArea, { paddingTop: insets.top }]}>
         {/* HUD at top — over dark background */}
         <View style={styles.hudBar}>
           <HUD
@@ -813,46 +790,55 @@ export default function GameplayScreen() {
             setSceneLayout({ width, height });
           }}
         >
+          {/* Fundo desfocado — cobre toda a sceneArea */}
           <Image
             source={bgImage}
             style={styles.sceneBackdrop}
             resizeMode="cover"
-            blurRadius={14}
+            blurRadius={20}
           />
+          {/* Overlay escuro para legibilidade */}
+          <View style={styles.sceneOverlay} pointerEvents="none" />
           <LinearGradient
-            colors={['rgba(1,8,20,0.78)', 'rgba(1,8,20,0.18)', 'rgba(1,8,20,0.72)']}
-            locations={[0, 0.4, 1]}
+            colors={['rgba(0,0,0,0.65)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.55)']}
+            locations={[0, 0.38, 1]}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
-          {/* Background image — contain mode so full image is always visible */}
-          <Image
-            source={bgImage}
-            style={[styles.sceneBgImage, {
+          {/* Background image — cover mode fills entire wrapper; offset is not needed with cover */}
+          <View
+            pointerEvents="none"
+            style={[styles.sceneBgImageWrapper, {
+              top: imgOffsetY,
+              left: imgOffsetX,
               width: imgRenderW,
               height: imgRenderH,
-              marginTop: imgOffsetY,
-              marginLeft: imgOffsetX,
+              overflow: 'hidden',
+              backgroundColor: '#000',
             }]}
-            resizeMode="contain"
-          />
+          >
+            <Image
+              source={bgImage}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          </View>
 
-          {/* Hazard layer — positioned relative to the rendered image */}
-          <View style={[styles.hazardLayer, {
-            left: imgOffsetX,
-            top: imgOffsetY,
-            width: imgRenderW,
-            height: imgRenderH,
-          }]}>
+          {/* Hazard layer — sized/positioned to match the rendered image.
+              box-none so the container itself never intercepts touches. */}
+          <View
+            pointerEvents="box-none"
+            style={[styles.hazardLayer, {
+              left: imgOffsetX,
+              top: imgOffsetY,
+              width: imgRenderW,
+              height: imgRenderH,
+            }]}
+          >
             {levelId === 1 && (
               <Level1Gameplay onCorrect={handleCorrect} onWrong={handleWrong} onComplete={handleLevelComplete}
                 onProgressChange={setMissionProgress}
                 areaWidth={imgRenderW} areaHeight={imgRenderH} />
-            )}
-            {levelId === 2 && (
-              <Level2Gameplay onCorrect={handleCorrect} onWrong={handleWrong} onComplete={handleLevelComplete}
-                onProgressChange={setMissionProgress}
-                areaWidth={imgRenderW} areaHeight={imgRenderH} compact={isCompactViewport} />
             )}
             {levelId === 4 && (
               <Level4Gameplay onCorrect={handleCorrect} onWrong={handleWrong} onComplete={handleLevelComplete}
@@ -866,7 +852,25 @@ export default function GameplayScreen() {
             )}
           </View>
 
-          {/* Quiz levels don't need image-relative positioning */}
+          {/* Level 2 rendered in its own absoluteFill view so toolTray sits at
+              the real screen bottom, not at the bottom of the square image area */}
+          {levelId === 2 && (
+            <View style={styles.level2FullLayer}>
+              <Level2Gameplay
+                onCorrect={handleCorrect}
+                onWrong={handleWrong}
+                onComplete={handleLevelComplete}
+                onProgressChange={setMissionProgress}
+                areaWidth={imgRenderW}
+                areaHeight={imgRenderH}
+                imgOffsetX={imgOffsetX}
+                imgOffsetY={imgOffsetY}
+                compact={isCompactViewport}
+              />
+            </View>
+          )}
+
+          {/* Level 3 quiz — high zIndex so it sits above hazardLayer */}
           {levelId === 3 && (
             <View style={styles.quizOverlay}>
               <Level3Gameplay
@@ -879,9 +883,9 @@ export default function GameplayScreen() {
             </View>
           )}
 
-          {!showBriefing && levelId !== 2 && levelId !== 3 ? (
+          {/* Painel de stats só no nível 4 (mapa) onde o contexto é necessário */}
+          {!showBriefing && levelId === 4 ? (
             <OperationsDeskPanel
-              top={deskTop}
               levelName={levelConfig.name}
               district={levelConfig.district}
               missionProgress={missionProgress}
@@ -930,7 +934,7 @@ export default function GameplayScreen() {
           onStart={handleMissionStart}
         />
         <PauseModal visible={gameState.isPaused} onResume={handleResume} onRestart={handleRestart} onMenu={handleBackToMenu} />
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -942,30 +946,47 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+    backgroundColor: '#000',
   },
   hudBar: {
     zIndex: 20,
+    backgroundColor: 'transparent',
   },
   sceneArea: {
     flex: 1,
     position: 'relative',
     overflow: 'hidden',
+    backgroundColor: '#000',
   },
   sceneBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.48,
+    opacity: 0.62,
   },
-  sceneBgImage: {
+  sceneOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.22)',
+  },
+  sceneBgImageWrapper: {
     position: 'absolute',
   },
   hazardLayer: {
     position: 'absolute',
+    zIndex: 10,
+    elevation: 10,
+  },
+  // Level 2 needs its own full-screen layer so the tool tray
+  // anchors to the real screen bottom, not the image bottom.
+  level2FullLayer: {
+    ...StyleSheet.absoluteFillObject,
     zIndex: 24,
     elevation: 24,
   },
   quizOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    zIndex: 30,
+    elevation: 30,
   },
   errorText: { color: '#FFF', fontSize: 20, textAlign: 'center', marginTop: 100 },
 
@@ -992,88 +1013,84 @@ const styles = StyleSheet.create({
   },
   level2PingRing: {
     position: 'absolute',
-    width: 54,
-    height: 54,
-    borderRadius: 18,
-    borderWidth: 1.4,
-    borderColor: 'rgba(177, 119, 50, 0.45)',
-    borderStyle: 'dashed',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 2.5,
+    borderColor: 'rgba(239, 68, 68, 0.7)',
+  },
+  level2PingRingSelected: {
+    borderColor: 'rgba(239, 68, 68, 1)',
+    borderWidth: 3,
   },
   level2Marker: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
-    backgroundColor: '#F8EDD2',
-    borderWidth: 2,
-    borderColor: '#B17732',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  level2MarkerSelected: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: '#FFF4DB',
-    borderColor: '#9E611B',
-  },
-  level2MarkerText: {
-    color: '#7A4B17',
-    fontSize: 17,
-    fontWeight: '900',
-    lineHeight: 18,
-  },
-  level2MarkerTextSelected: {
-    fontSize: 18,
-  },
-  level2SolvedDot: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#E7F0E4',
-    borderWidth: 1.5,
-    borderColor: '#6E8A67',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: 2,
+    borderColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.55,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  level2MarkerSelected: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(239,68,68,0.3)',
+    borderColor: '#FCA5A5',
+    shadowOpacity: 0.7,
+  },
+  level2MarkerEmoji: {
+    fontSize: 20,
+    lineHeight: 24,
+  },
+  level2SolvedDot: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 2,
+    borderColor: '#22C55E',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  level2SolvedText: {
-    color: '#395441',
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.4,
+  level2SolvedEmoji: {
+    fontSize: 22,
+    lineHeight: 26,
   },
   level2FocusTag: {
     position: 'absolute',
-    top: -30,
-    backgroundColor: '#F6ECD8',
-    borderWidth: 1,
-    borderColor: '#B59B6A',
+    top: -28,
+    backgroundColor: '#1F2937',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
   },
   level2FocusTagText: {
-    color: '#32281C',
+    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '800',
   },
 
-  // Tool bar (Level 2)
+  // Tool bar (Level 2) — tema escuro para não tampar
   toolTray: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(247,241,228,0.98)',
+    backgroundColor: 'rgba(8,12,20,0.94)',
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderTopWidth: 1, borderColor: '#D1C3A7',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
     gap: 8,
   },
   toolTrayCompact: {
@@ -1085,10 +1102,10 @@ const styles = StyleSheet.create({
   },
   toolBarTitle: { display: 'none' },
   toolBarEyebrow: {
-    color: '#7C6A4A',
+    color: '#F87171',
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   toolTrayHeader: {
     flexDirection: 'row',
@@ -1102,50 +1119,50 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   toolTrayTitle: {
-    color: '#241C13',
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '900',
-    marginTop: 2,
+    marginTop: 1,
   },
   toolTrayTitleCompact: {
-    fontSize: 14,
+    fontSize: 13,
   },
   toolTrayHelper: {
-    color: '#655540',
+    color: 'rgba(255,255,255,0.55)',
     fontSize: 11,
     lineHeight: 15,
-    marginTop: 2,
+    marginTop: 1,
   },
   toolTrayHelperCompact: {
     fontSize: 10,
     lineHeight: 13,
   },
   toolTrayCounter: {
-    minWidth: 66,
+    minWidth: 60,
     borderRadius: 14,
     paddingHorizontal: 8,
     paddingVertical: 8,
-    backgroundColor: '#EFE4CA',
+    backgroundColor: 'rgba(34,197,94,0.18)',
     borderWidth: 1,
-    borderColor: '#D0B986',
+    borderColor: 'rgba(34,197,94,0.35)',
     alignItems: 'center',
   },
   toolTrayCounterCompact: {
-    minWidth: 58,
+    minWidth: 52,
     borderRadius: 12,
     paddingHorizontal: 7,
     paddingVertical: 6,
   },
   toolTrayCounterValue: {
-    color: '#3A2E1E',
-    fontSize: 16,
+    color: '#86EFAC',
+    fontSize: 15,
     fontWeight: '900',
   },
   toolTrayCounterValueCompact: {
-    fontSize: 14,
+    fontSize: 13,
   },
   toolTrayCounterLabel: {
-    color: '#756245',
+    color: 'rgba(134,239,172,0.7)',
     fontSize: 9,
     fontWeight: '800',
     marginTop: 1,
@@ -1154,9 +1171,9 @@ const styles = StyleSheet.create({
     fontSize: 8,
   },
   toolStatus: {
-    backgroundColor: '#FFF9EE',
+    backgroundColor: 'rgba(180,83,9,0.2)',
     borderWidth: 1,
-    borderColor: '#D6CAB2',
+    borderColor: 'rgba(251,191,36,0.3)',
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 7,
@@ -1167,10 +1184,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   toolStatusText: {
-    color: '#4C4030',
+    color: '#FDE68A',
     fontSize: 11,
     lineHeight: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   toolStatusTextCompact: {
     fontSize: 10,
@@ -1187,49 +1204,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    borderWidth: 1.5,
-    borderRadius: 13,
-    paddingHorizontal: 9,
-    paddingVertical: 9,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    // backgroundColor e borderColor definidos inline pelo meta de cada ferramenta
+    // (já vem com tint escuro do LEVEL2_TOOL_META)
   },
   toolChoiceCompact: {
     gap: 6,
     borderRadius: 12,
     paddingHorizontal: 8,
-    paddingVertical: 7,
+    paddingVertical: 8,
   },
-  toolBadge: {
-    width: 31,
-    height: 31,
-    borderRadius: 9,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8F1E3',
-  },
-  toolBadgeCompact: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-  },
-  toolBadgeText: {
-    fontSize: 12,
-    fontWeight: '900',
+  toolBadgeEmoji: {
+    fontSize: 22,
+    lineHeight: 26,
   },
   toolChoiceLabel: {
     flex: 1,
-    color: '#2E261C',
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 15,
     fontWeight: '800',
+    // cor é definida inline pelo accent de cada ferramenta
   },
   toolChoiceLabelCompact: {
-    fontSize: 10,
-    lineHeight: 12,
+    fontSize: 11,
+    lineHeight: 13,
   },
 
   // Quiz
-  quizArea: { flex: 1, justifyContent: 'center', paddingHorizontal: 16 },
+  quizArea: { flex: 1, justifyContent: 'center', paddingHorizontal: 12 },
   quizDone: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   quizDoneEmoji: { fontSize: 48 },
   quizDoneText: { color: '#FFF', fontSize: 22, fontWeight: '800', marginTop: 12 },
@@ -1243,42 +1248,40 @@ const styles = StyleSheet.create({
   mapPinInner: {
     width: 52, height: 52, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: '#C8B389',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)',
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 6, elevation: 6,
+    shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
   },
   mapPinEmoji: {
-    fontSize: 18,
-    color: '#3B2F22',
-    fontWeight: '900',
+    fontSize: 22,
   },
   mapPinLabel: {
-    color: '#4F3E2B',
+    color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '800',
     marginTop: 4,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 8,
-    backgroundColor: 'rgba(246,236,216,0.96)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     borderWidth: 1,
-    borderColor: '#BDA174',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   mapPinLabelDone: {
-    color: '#45624A',
-    borderColor: '#8DB18D',
-    backgroundColor: '#E7F0E4',
+    color: '#FFFFFF',
+    borderColor: 'rgba(34,197,94,0.4)',
+    backgroundColor: 'rgba(22,163,74,0.7)',
   },
   miniMission: { flex: 1, position: 'relative', paddingTop: 8 },
   miniBack: {
-    backgroundColor: 'rgba(246,240,226,0.96)', paddingHorizontal: 12, paddingVertical: 6,
+    backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 10, alignSelf: 'flex-start', marginLeft: 12, marginBottom: 4,
-    borderWidth: 1, borderColor: '#CDBB96',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
-  miniBackText: { color: '#5A4B37', fontSize: 12, fontWeight: '700' },
+  miniBackText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
   miniTitle: {
-    color: '#FFF8EA', fontSize: 14, fontWeight: '900', marginLeft: 12, marginBottom: 8,
-    textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3,
+    color: '#FFFFFF', fontSize: 15, fontWeight: '900', marginLeft: 12, marginBottom: 8,
+    textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
   },
 
   // Phase tag (Level 5)
@@ -1287,10 +1290,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#C8B389',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  phaseTagText: { color: '#5A4933', fontSize: 11, fontWeight: '900', letterSpacing: 0.8 },
+  phaseTagText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900', letterSpacing: 0.8 },
 
   // Feedback overlay
   feedbackOverlay: {

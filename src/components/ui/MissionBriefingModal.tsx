@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { LevelConfig } from '../../types/game';
 import { getThreatPalette } from '../../data/campaign';
 
@@ -9,6 +10,13 @@ interface MissionBriefingModalProps {
   visible: boolean;
   onStart: () => void;
 }
+
+const THREAT_COLORS: Record<string, [string, string]> = {
+  Baixa:    ['#22C55E', '#16A34A'],
+  Media:    ['#3B82F6', '#2563EB'],
+  Alta:     ['#F59E0B', '#D97706'],
+  Crítica:  ['#EF4444', '#DC2626'],
+};
 
 export const MissionBriefingModal: React.FC<MissionBriefingModalProps> = ({
   level,
@@ -19,65 +27,84 @@ export const MissionBriefingModal: React.FC<MissionBriefingModalProps> = ({
 
   const threat = getThreatPalette(level.threatLevel);
   const threatColor = threat.colors[0];
+  const [gradStart, gradEnd] = THREAT_COLORS[level.threatLevel] ?? ['#22C55E', '#16A34A'];
 
   return (
-    <Animated.View entering={FadeIn.duration(250)} style={styles.overlay}>
+    <Animated.View entering={FadeIn.duration(220)} style={styles.overlay}>
       <View style={styles.scrim} />
 
-      <Animated.View entering={FadeInDown.delay(100).duration(350)} style={styles.card}>
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.eyebrow}>PLANO DE CAMPO</Text>
-            <Text style={styles.recordId}>Registro da missao {String(level.id).padStart(2, '0')}</Text>
+      <Animated.View entering={FadeInDown.delay(80).duration(300)} style={styles.cardWrapper}>
+        <ScrollView
+          contentContainerStyle={styles.card}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {/* HEADER */}
+          <View style={styles.headerRow}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.eyebrow}>🗂 PLANO DE CAMPO</Text>
+              <Text style={styles.recordId}>Missão {String(level.id).padStart(2, '0')}</Text>
+            </View>
+            <LinearGradient colors={[gradStart, gradEnd]} style={styles.sealBox}>
+              <Text style={styles.sealText}>VS</Text>
+            </LinearGradient>
           </View>
-          <View style={styles.sealBox}>
-            <Text style={styles.sealText}>VS</Text>
-          </View>
-        </View>
 
-        <View style={styles.titleRow}>
+          {/* TÍTULO */}
           <View style={styles.titleBlock}>
             <Text style={styles.title}>{level.name}</Text>
-            <Text style={styles.subtitle}>{level.district}</Text>
+            <Text style={styles.subtitle}>📍 {level.district}</Text>
           </View>
-        </View>
 
-        <View style={styles.metaRow}>
-          <View style={[styles.threatChip, { borderColor: threatColor }]}>
-            <View style={[styles.threatDot, { backgroundColor: threatColor }]} />
-            <Text style={styles.threatText}>Ameaca {level.threatLevel}</Text>
+          {/* THREAT + BADGE */}
+          <View style={styles.metaRow}>
+            <View style={[styles.threatChip, { borderColor: threatColor, backgroundColor: threatColor + '18' }]}>
+              <View style={[styles.threatDot, { backgroundColor: threatColor }]} />
+              <Text style={[styles.threatText, { color: threatColor }]}>Ameaça {level.threatLevel}</Text>
+            </View>
+            <View style={styles.badgeChip}>
+              <Text style={styles.badgeText}>🏅 {level.badge.name}</Text>
+            </View>
           </View>
-          <View style={styles.badgeChip}>
-            <Text style={styles.badgeText}>{level.badge.name}</Text>
+
+          {/* BRIEFING */}
+          <Text style={styles.briefing}>{level.briefing}</Text>
+
+          {/* MISSÃO PRINCIPAL */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>🎯 Missão principal</Text>
+            <Text style={styles.sectionText}>{level.objective}</Text>
           </View>
-        </View>
 
-        <Text style={styles.briefing}>{level.briefing}</Text>
+          {/* DESAFIO EXTRA */}
+          <View style={styles.sectionBonus}>
+            <Text style={styles.sectionTitle}>⭐ Desafio extra</Text>
+            <Text style={styles.sectionText}>
+              {level.bonusObjective.title}: {level.bonusObjective.description}
+            </Text>
+          </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Missao principal</Text>
-          <Text style={styles.sectionText}>{level.objective}</Text>
-        </View>
+          {/* DICA */}
+          <View style={styles.tipRow}>
+            <Text style={styles.tipText}>💡 {level.supportTip}</Text>
+          </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Desafio extra</Text>
-          <Text style={styles.sectionText}>
-            {level.bonusObjective.title}: {level.bonusObjective.description}
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Orientacao da equipe</Text>
-          <Text style={styles.sectionText}>{level.supportTip}</Text>
-        </View>
-
-        <Text style={styles.footerNote}>
-          Registre a acao correta em cada foco para manter o bairro protegido.
-        </Text>
-
-        <TouchableOpacity style={styles.startButton} onPress={onStart} activeOpacity={0.86}>
-          <Text style={styles.startButtonText}>Iniciar vistoria</Text>
-        </TouchableOpacity>
+          {/* BOTÃO INICIAR */}
+          <TouchableOpacity
+            style={styles.startButtonOuter}
+            onPress={onStart}
+            activeOpacity={0.86}
+          >
+            <LinearGradient
+              colors={[gradStart, gradEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.startButtonGradient}
+            >
+              <Text style={styles.startButtonText}>🚀  Iniciar vistoria</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </ScrollView>
       </Animated.View>
     </Animated.View>
   );
@@ -88,36 +115,51 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 24,
     zIndex: 60,
   },
   scrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(31, 23, 14, 0.62)',
+    backgroundColor: 'rgba(0,0,0,0.72)',
   },
-  card: {
+  cardWrapper: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: '#F6F0E2',
+    maxHeight: '92%',
     borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#CCBEA3',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
+    overflow: 'hidden',
+  },
+  card: {
+    padding: 20,
     gap: 14,
   },
+
+  // HEADER
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
+  headerLeft: {
+    flex: 1,
+  },
   eyebrow: {
-    color: '#7C6A4A',
+    color: '#6B7280',
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 1.3,
+    letterSpacing: 0.8,
   },
   recordId: {
-    color: '#988566',
+    color: '#9CA3AF',
     fontSize: 11,
     fontWeight: '600',
     marginTop: 2,
@@ -126,37 +168,35 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#E8DFC8',
-    borderWidth: 1,
-    borderColor: '#BAA27A',
     alignItems: 'center',
     justifyContent: 'center',
   },
   sealText: {
-    color: '#6E5737',
-    fontSize: 14,
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '900',
     letterSpacing: 0.8,
   },
-  titleRow: {
-    borderTopWidth: 1,
-    borderTopColor: '#DED2BA',
-    paddingTop: 14,
-  },
+
+  // TÍTULO
   titleBlock: {
-    flex: 1,
+    borderTopWidth: 1.5,
+    borderTopColor: '#F3F4F6',
+    paddingTop: 12,
   },
   title: {
-    color: '#241C13',
-    fontSize: 24,
+    color: '#111827',
+    fontSize: 26,
     fontWeight: '900',
   },
   subtitle: {
-    color: '#6A5A43',
+    color: '#6B7280',
     fontSize: 13,
     fontWeight: '600',
-    marginTop: 2,
+    marginTop: 3,
   },
+
+  // META
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -166,78 +206,106 @@ const styles = StyleSheet.create({
   threatChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#FCF8EF',
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
   threatDot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 999,
   },
   threatText: {
-    color: '#352B1E',
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 0.3,
   },
   badgeChip: {
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#EFE4CA',
-    borderWidth: 1,
-    borderColor: '#D0B986',
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
   },
   badgeText: {
-    color: '#5A482B',
+    color: '#14532D',
     fontSize: 12,
     fontWeight: '700',
   },
+
+  // BRIEFING
   briefing: {
-    color: '#46392A',
+    color: '#374151',
     fontSize: 14,
     lineHeight: 22,
   },
+
+  // SEÇÕES
   section: {
-    backgroundColor: '#FFF9EE',
+    backgroundColor: '#F9FAFB',
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E0D5BF',
+    borderColor: '#E5E7EB',
+    gap: 4,
+  },
+  sectionBonus: {
+    backgroundColor: '#FEFCE8',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
     gap: 4,
   },
   sectionTitle: {
-    color: '#2D2318',
+    color: '#111827',
     fontSize: 13,
     fontWeight: '800',
   },
   sectionText: {
-    color: '#5B4D3B',
+    color: '#4B5563',
     fontSize: 13,
     lineHeight: 20,
   },
-  footerNote: {
-    color: '#756245',
-    fontSize: 12,
-    lineHeight: 18,
+
+  // DICA
+  tipRow: {
+    backgroundColor: '#ECFEFF',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#A5F3FC',
   },
-  startButton: {
-    minHeight: 56,
+  tipText: {
+    color: '#0E7490',
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '600',
+  },
+
+  // BOTÃO
+  startButtonOuter: {
     borderRadius: 16,
-    backgroundColor: '#E8DFC8',
-    borderWidth: 1.5,
-    borderColor: '#8D7443',
+    overflow: 'hidden',
+    shadowColor: '#22C55E',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+    marginTop: 2,
+  },
+  startButtonGradient: {
+    minHeight: 54,
     alignItems: 'center',
     justifyContent: 'center',
   },
   startButtonText: {
-    color: '#2C241A',
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 17,
     fontWeight: '800',
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
 });

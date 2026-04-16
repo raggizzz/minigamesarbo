@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground, Image } from 'react-native';
 import Animated, { SlideInRight } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GameButton } from '../src/components/ui/GameButton';
 import { useGameStore } from '../src/store/gameStore';
@@ -45,6 +45,7 @@ export default function IntroScreen() {
 
   const slide = INTRO_SLIDES[currentSlide];
   const isLast = currentSlide === INTRO_SLIDES.length - 1;
+  const insets = useSafeAreaInsets();
 
   const handleNext = () => {
     if (isLast) {
@@ -72,7 +73,7 @@ export default function IntroScreen() {
         style={StyleSheet.absoluteFill}
       />
 
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.safeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         {/* Skip */}
         <View style={styles.skipContainer}>
           <GameButton title="Pular ⏩" onPress={handleSkip} variant="ghost" size="sm" />
@@ -111,13 +112,13 @@ export default function IntroScreen() {
             fullWidth
           />
         </View>
-      </SafeAreaView>
+      </View>
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#000' },
   safeArea: { flex: 1, padding: 24 },
   skipContainer: { alignItems: 'flex-end' },
   character: { width: 100, height: 100, alignSelf: 'center', marginTop: 10 },

@@ -1,6 +1,6 @@
 // ============================================
-// ArboGame â€” Scene Hotspot
-// Educational field marker with grounded action sheet
+// ArboGame – Scene Hotspot
+// Educational field marker – dark overlay UI
 // ============================================
 
 import React, { useState } from 'react';
@@ -20,43 +20,43 @@ interface ActionSpec {
   type: ActionType;
   icon: string;
   label: string;
-  note: string;
   accent: string;
-  tint: string;
+  bg: string;
+  textColor: string;
 }
 
 const ACTIONS: ActionSpec[] = [
   {
     type: 'tampar',
-    icon: 'T',
-    label: 'Tampar recipiente',
-    note: 'Fechar a abertura para impedir nova agua exposta.',
-    accent: '#486B7B',
-    tint: '#E8F0F3',
+    icon: '🔒',
+    label: 'Tampar',
+    accent: '#60A5FA',
+    bg: 'rgba(37,99,235,0.25)',
+    textColor: '#93C5FD',
   },
   {
     type: 'esvaziar',
-    icon: 'E',
-    label: 'Esvaziar agua',
-    note: 'Remover a agua parada e deixar o local seco.',
-    accent: '#5B7F63',
-    tint: '#EBF3EA',
+    icon: '💧',
+    label: 'Esvaziar',
+    accent: '#34D399',
+    bg: 'rgba(5,150,105,0.25)',
+    textColor: '#6EE7B7',
   },
   {
     type: 'limpar',
-    icon: 'L',
-    label: 'Limpar o foco',
-    note: 'Higienizar para nao deixar resquicios de criadouro.',
-    accent: '#8A6A3E',
-    tint: '#F6EFE2',
+    icon: '🧹',
+    label: 'Limpar',
+    accent: '#FCD34D',
+    bg: 'rgba(180,83,9,0.25)',
+    textColor: '#FDE68A',
   },
   {
     type: 'reportar',
-    icon: 'R',
-    label: 'Reportar risco',
-    note: 'Acionar um adulto ou equipe para tratar o local.',
-    accent: '#8B4C45',
-    tint: '#F7ECE9',
+    icon: '📣',
+    label: 'Reportar',
+    accent: '#F87171',
+    bg: 'rgba(185,28,28,0.25)',
+    textColor: '#FCA5A5',
   },
 ];
 
@@ -74,24 +74,24 @@ export const TappableHazard: React.FC<TappableHazardProps> = ({
   containerHeight,
 }) => {
   const [showActions, setShowActions] = useState(false);
-  const compact = containerWidth <= 360 || containerHeight <= 360;
+  const compact = containerWidth <= 380 || containerHeight <= 380;
 
   const ringScale = useSharedValue(1);
-  const ringOpacity = useSharedValue(0.55);
+  const ringOpacity = useSharedValue(0.8);
 
   React.useEffect(() => {
     if (!hazard.solved) {
       ringScale.value = withRepeat(
         withSequence(
-          withTiming(1.28, { duration: 1100, easing: Easing.out(Easing.ease) }),
+          withTiming(1.7, { duration: 850, easing: Easing.out(Easing.ease) }),
           withTiming(1, { duration: 0 })
         ),
         -1
       );
       ringOpacity.value = withRepeat(
         withSequence(
-          withTiming(0.08, { duration: 1100 }),
-          withTiming(0.55, { duration: 0 })
+          withTiming(0, { duration: 850 }),
+          withTiming(0.8, { duration: 0 })
         ),
         -1
       );
@@ -103,23 +103,20 @@ export const TappableHazard: React.FC<TappableHazardProps> = ({
     opacity: ringOpacity.value,
   }));
 
-  const size = compact ? 50 : 58;
+  const size = compact ? 48 : 54;
   const x = hazard.position.x * containerWidth - size / 2;
   const y = hazard.position.y * containerHeight - size / 2;
-  const popupWidth = Math.min(compact ? 210 : 236, Math.max(188, containerWidth - 18));
-  const popupHeightEstimate = compact ? 248 : 282;
+
+  // Popup sizing & clamping
+  const popupW = Math.min(compact ? 200 : 220, containerWidth - 20);
+  const popupH = compact ? 220 : 248;
   const spaceAbove = y;
   const spaceBelow = containerHeight - (y + size);
-  const openBelow = spaceAbove < popupHeightEstimate * 0.78 || spaceBelow > spaceAbove;
-  const popupLeftEdge = x + size / 2 - popupWidth / 2;
-  const popupRightEdge = popupLeftEdge + popupWidth;
-  let popupTranslateX = 0;
+  const openBelow = spaceAbove < popupH * 0.9 || spaceBelow > spaceAbove;
 
-  if (popupLeftEdge < 8) {
-    popupTranslateX = 8 - popupLeftEdge;
-  } else if (popupRightEdge > containerWidth - 8) {
-    popupTranslateX = (containerWidth - 8) - popupRightEdge;
-  }
+  const rawLeft = x + size / 2 - popupW / 2;
+  const clampedLeft = Math.max(8, Math.min(rawLeft, containerWidth - popupW - 8));
+  const translateX = clampedLeft - rawLeft;
 
   if (hazard.solved) {
     return (
@@ -127,9 +124,7 @@ export const TappableHazard: React.FC<TappableHazardProps> = ({
         entering={ZoomIn.springify()}
         style={[styles.hotspot, { left: x, top: y, width: size, height: size }]}
       >
-        <View style={styles.solvedDot}>
-          <Text style={styles.solvedCheck}>OK</Text>
-        </View>
+        <Text style={styles.solvedEmoji}>✅</Text>
       </Animated.View>
     );
   }
@@ -142,69 +137,65 @@ export const TappableHazard: React.FC<TappableHazardProps> = ({
         showActions && styles.hotspotActive,
       ]}
     >
+      {/* ANEL DE PULSO */}
       <Animated.View style={[styles.pulseRing, ringStyle]} />
 
+      {/* BOTÃO DO MARCADOR */}
       <TouchableOpacity
         style={styles.tapTarget}
-        onPress={() => setShowActions((value) => !value)}
-        activeOpacity={0.78}
+        onPress={() => setShowActions((v) => !v)}
+        activeOpacity={0.75}
       >
-        <View style={styles.markerCore}>
-          <Text style={styles.markerWarning}>!</Text>
+        <View style={[styles.markerCore, showActions && styles.markerCoreActive]}>
+          <Text style={styles.markerEmoji}>🦟</Text>
         </View>
       </TouchableOpacity>
 
-      {showActions ? (
-        <View style={styles.floatingLabel}>
-          <Text style={styles.labelText}>{hazard.label}</Text>
-        </View>
-      ) : null}
-
+      {/* POPUP ESCURO */}
       {showActions ? (
         <Animated.View
-          entering={ZoomIn.springify().duration(220)}
+          entering={ZoomIn.springify().duration(180)}
           pointerEvents="box-none"
           style={[
-            styles.actionPopup,
-            openBelow ? styles.actionPopupBelow : styles.actionPopupAbove,
-            { transform: [{ translateX: popupTranslateX }] },
+            styles.popup,
+            openBelow ? styles.popupBelow : styles.popupAbove,
+            { width: popupW, transform: [{ translateX }] },
           ]}
         >
-          <View style={[styles.popupInner, compact && styles.popupInnerCompact, { width: popupWidth }]}>
-            <View style={styles.popupHeader}>
-              <View style={styles.popupHeaderCopy}>
-                <Text style={styles.popupEyebrow}>FICHA DE INSPECAO</Text>
-                <Text style={[styles.popupTitle, compact && styles.popupTitleCompact]}>{hazard.label}</Text>
-              </View>
-              <TouchableOpacity onPress={() => setShowActions(false)} style={styles.closeBtn}>
-                <Text style={styles.closeText}>Fechar</Text>
+          {/* HEADER */}
+          <View style={styles.popupHeader}>
+            <View style={styles.popupHeaderLeft}>
+              <Text style={styles.popupEyebrow}>🦟 FOCO IDENTIFICADO</Text>
+              <Text style={[styles.popupTitle, compact && styles.popupTitleSm]} numberOfLines={1}>
+                {hazard.label}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowActions(false)} style={styles.closeBtn} activeOpacity={0.7}>
+              <Text style={styles.closeText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* DESCRIÇÃO COMPACTA */}
+          {!compact ? (
+            <Text style={styles.popupDesc} numberOfLines={2}>{hazard.description}</Text>
+          ) : null}
+
+          {/* AÇÕES – grid 2×2 */}
+          <View style={styles.actionsGrid}>
+            {ACTIONS.map((action) => (
+              <TouchableOpacity
+                key={action.type}
+                style={[styles.actionBtn, { backgroundColor: action.bg, borderColor: action.accent }]}
+                onPress={() => {
+                  setShowActions(false);
+                  onAction(hazard.id, action.type);
+                }}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.actionIcon}>{action.icon}</Text>
+                <Text style={[styles.actionLabel, { color: action.textColor }]}>{action.label}</Text>
               </TouchableOpacity>
-            </View>
-
-            <Text style={[styles.popupDescription, compact && styles.popupDescriptionCompact]}>{hazard.description}</Text>
-            <Text style={[styles.popupPrompt, compact && styles.popupPromptCompact]}>Qual medida preventiva resolve esse foco?</Text>
-
-            <View style={styles.popupActions}>
-              {ACTIONS.map((action) => (
-                <TouchableOpacity
-                  key={action.type}
-                  style={[styles.actionBtn, compact && styles.actionBtnCompact, { borderColor: action.accent }]}
-                  onPress={() => {
-                    setShowActions(false);
-                    onAction(hazard.id, action.type);
-                  }}
-                  activeOpacity={0.82}
-                >
-                  <View style={[styles.actionBadge, compact && styles.actionBadgeCompact, { backgroundColor: action.tint, borderColor: action.accent }]}>
-                    <Text style={[styles.actionBadgeText, { color: action.accent }]}>{action.icon}</Text>
-                  </View>
-                  <View style={styles.actionCopy}>
-                    <Text style={[styles.actionLabel, compact && styles.actionLabelCompact]}>{action.label}</Text>
-                    <Text style={[styles.actionNote, compact && styles.actionNoteCompact]}>{action.note}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
+            ))}
           </View>
         </Animated.View>
       ) : null}
@@ -223,210 +214,144 @@ const styles = StyleSheet.create({
     zIndex: 120,
     elevation: 40,
   },
+
+  // ANEL
   pulseRing: {
     position: 'absolute',
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    borderWidth: 1.6,
-    borderColor: '#B17732',
-    borderStyle: 'dashed',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2.5,
+    borderColor: '#EF4444',
   },
+
+  // MARCADOR
   tapTarget: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 42,
+    height: 42,
     alignItems: 'center',
     justifyContent: 'center',
   },
   markerCore: {
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     borderRadius: 12,
-    backgroundColor: '#F8EDD2',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     borderWidth: 2,
-    borderColor: '#B17732',
+    borderColor: '#EF4444',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: '#EF4444',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  markerWarning: {
-    color: '#7A4B17',
-    fontSize: 18,
-    fontWeight: '900',
-    lineHeight: 20,
+  markerCoreActive: {
+    backgroundColor: 'rgba(239,68,68,0.3)',
+    borderColor: '#FCA5A5',
   },
-  floatingLabel: {
-    position: 'absolute',
-    top: -24,
-    backgroundColor: '#F6ECD8',
-    borderWidth: 1,
-    borderColor: '#B59B6A',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    zIndex: 10,
+  markerEmoji: {
+    fontSize: 20,
+    lineHeight: 24,
   },
-  labelText: {
-    color: '#32281C',
-    fontSize: 9,
-    fontWeight: '800',
-    textAlign: 'center',
+
+  // SOLVED
+  solvedEmoji: {
+    fontSize: 28,
+    lineHeight: 32,
   },
-  solvedDot: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#E7F0E4',
-    borderWidth: 1.5,
-    borderColor: '#6E8A67',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  solvedCheck: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#395441',
-    letterSpacing: 0.4,
-  },
-  actionPopup: {
+
+  // POPUP ESCURO
+  popup: {
     position: 'absolute',
     zIndex: 220,
-    alignItems: 'center',
-  },
-  actionPopupAbove: {
-    bottom: 70,
-  },
-  actionPopupBelow: {
-    top: 70,
-  },
-  popupInner: {
-    backgroundColor: '#F7F1E4',
     borderRadius: 18,
-    padding: 14,
+    backgroundColor: 'rgba(8,12,20,0.93)',
     borderWidth: 1,
-    borderColor: '#D1C3A7',
+    borderColor: 'rgba(255,255,255,0.14)',
+    padding: 12,
+    gap: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
+    shadowOpacity: 0.55,
+    shadowRadius: 16,
     elevation: 30,
-    zIndex: 240,
-    gap: 8,
   },
-  popupInnerCompact: {
-    borderRadius: 16,
-    padding: 12,
-    gap: 7,
+  popupAbove: {
+    bottom: 56,
   },
+  popupBelow: {
+    top: 56,
+  },
+
   popupHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    gap: 12,
+    justifyContent: 'space-between',
+    gap: 8,
   },
-  popupHeaderCopy: {
+  popupHeaderLeft: {
     flex: 1,
   },
   popupEyebrow: {
-    color: '#7C6A4A',
-    fontSize: 10,
+    color: '#EF4444',
+    fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
   popupTitle: {
-    color: '#1F2933',
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '900',
     marginTop: 2,
   },
-  popupTitleCompact: {
-    fontSize: 15,
+  popupTitleSm: {
+    fontSize: 13,
   },
   closeBtn: {
-    paddingVertical: 2,
-  },
-  closeText: {
-    color: '#7C6A4A',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  popupDescription: {
-    color: '#4B5563',
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  popupDescriptionCompact: {
-    fontSize: 11,
-    lineHeight: 15,
-  },
-  popupPrompt: {
-    color: '#27313B',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  popupPromptCompact: {
-    fontSize: 11,
-  },
-  popupActions: {
-    gap: 8,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#FFFDFC',
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-  },
-  actionBtnCompact: {
-    gap: 8,
+    width: 24,
+    height: 24,
     borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 9,
-  },
-  actionBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionBadgeCompact: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
-  },
-  actionBadgeText: {
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  actionCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  actionLabel: {
-    color: '#1F2933',
-    fontSize: 12,
+  closeText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 11,
     fontWeight: '800',
   },
-  actionLabelCompact: {
-    fontSize: 11,
-  },
-  actionNote: {
-    color: '#5C6670',
+
+  popupDesc: {
+    color: 'rgba(255,255,255,0.55)',
     fontSize: 11,
     lineHeight: 15,
   },
-  actionNoteCompact: {
-    fontSize: 9,
-    lineHeight: 12,
+
+  // GRID 2×2
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  actionBtn: {
+    width: '47%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+  },
+  actionIcon: {
+    fontSize: 18,
+    lineHeight: 22,
+  },
+  actionLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    flex: 1,
   },
 });

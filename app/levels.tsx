@@ -7,18 +7,31 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getCampaignProfile } from '../src/data/campaign';
 import { LEVELS } from '../src/data/levels';
 import { StarRatingDisplay } from '../src/components/ui/StarRating';
 import { useGameStore } from '../src/store/gameStore';
 import { LevelId } from '../src/types/game';
 
-const LEVEL_ACCENTS = ['#5B7F63', '#486B7B', '#8A6A3E', '#B17732', '#8B4C45'];
+// Cada nível com gradiente próprio (vibrante)
+const LEVEL_GRADIENTS: [string, string][] = [
+  ['#22C55E', '#16A34A'],   // Level 1 - verde
+  ['#3B82F6', '#2563EB'],   // Level 2 - azul
+  ['#F59E0B', '#D97706'],   // Level 3 - âmbar
+  ['#EF4444', '#DC2626'],   // Level 4 - vermelho
+  ['#8B5CF6', '#7C3AED'],   // Level 5 - roxo
+];
+
+const LEVEL_EMOJIS = ['🏠', '🌿', '🩺', '🏘️', '🏙️'];
+const LEVEL_LIGHT_BG = ['#F0FDF4', '#EFF6FF', '#FFFBEB', '#FFF1F2', '#F5F3FF'];
+const LEVEL_BORDER = ['#86EFAC', '#93C5FD', '#FDE68A', '#FCA5A5', '#C4B5FD'];
 
 export default function LevelsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const progress = useGameStore((state) => state.progress);
   const levels = progress.levels || {};
   const campaign = getCampaignProfile(progress);
@@ -30,30 +43,34 @@ export default function LevelsScreen() {
   };
 
   return (
-    <ImageBackground
-      source={require('../assets/images/game/bg_levels_path.png')}
-      style={styles.container}
-      resizeMode="cover"
-    >
+    <View style={styles.root}>
+      <ImageBackground
+        source={require('../assets/images/game/bg_levels_path.png')}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      />
       <View style={styles.overlay} />
 
-      <SafeAreaView style={styles.safe}>
+      {/* Conteúdo — usando insets manuais para nunca mostrar fundo branco */}
+      <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        {/* HEADER */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.82}>
-            <Text style={styles.backText}>Voltar</Text>
+            <Text style={styles.backText}>← Voltar</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Campanha</Text>
+          <Text style={styles.headerTitle}>🗺️ Campanha</Text>
           <View style={styles.scoreBadge}>
-            <Text style={styles.scoreBadgeText}>{progress.totalScore} pts</Text>
+            <Text style={styles.scoreBadgeText}>⭐ {progress.totalScore}</Text>
           </View>
         </View>
 
+        {/* RANK CARD */}
         <View style={styles.summaryCard}>
           <View style={styles.summaryCopy}>
-            <Text style={styles.summaryEyebrow}>TRILHA DA CIDADE</Text>
+            <Text style={styles.summaryEyebrow}>🏆 TRILHA DA CIDADE</Text>
             <Text style={styles.summaryTitle}>{campaign.rankTitle}</Text>
             <Text style={styles.summaryText}>
-              {campaign.completedLevels} missoes concluídas. Falta pouco para subir de patente.
+              {campaign.completedLevels} missões concluídas · sobe de patente!
             </Text>
           </View>
           <View style={styles.summaryBadge}>
@@ -62,285 +79,340 @@ export default function LevelsScreen() {
           </View>
         </View>
 
+        {/* DESAFIOS EXTRAS */}
         <TouchableOpacity
           style={styles.trainingCard}
           onPress={() => router.push('/training')}
           activeOpacity={0.84}
         >
-          <Text style={styles.summaryEyebrow}>CONTEUDO NOVO</Text>
-          <Text style={styles.trainingTitle}>Abrir desafios extras</Text>
-          <Text style={styles.trainingText}>
-            Treinos curtos de classificacao, resposta rapida e triagem sentinela.
-          </Text>
+          <LinearGradient
+            colors={['#3B82F6', '#2563EB']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.trainingGradient}
+          >
+            <Text style={styles.trainingEmoji}>⚡</Text>
+            <View style={styles.trainingCopy}>
+              <Text style={styles.trainingTitle}>Desafios extras</Text>
+              <Text style={styles.trainingText}>Classificação, resposta rápida e triagem sentinela.</Text>
+            </View>
+            <Text style={styles.trainingArrow}>›</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* LISTA DE NÍVEIS */}
+        <ScrollView contentContainerStyle={styles.scrollContent} style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {LEVELS.map((level, index) => {
-            const accent = LEVEL_ACCENTS[index] || LEVEL_ACCENTS[0];
+            const [gradStart, gradEnd] = LEVEL_GRADIENTS[index] ?? ['#6B7280', '#4B5563'];
+            const emoji = LEVEL_EMOJIS[index] ?? '🎯';
+            const lightBg = LEVEL_LIGHT_BG[index] ?? '#F9FAFB';
+            const borderColor = LEVEL_BORDER[index] ?? '#E5E7EB';
             const unlocked = isLevelUnlocked(level.id);
             const levelData = levels[level.id];
 
             return (
               <TouchableOpacity
                 key={level.id}
-                style={[styles.levelCard, !unlocked && styles.levelCardLocked]}
+                style={[
+                  styles.levelCard,
+                  { backgroundColor: lightBg, borderColor },
+                  !unlocked && styles.levelCardLocked,
+                ]}
                 onPress={() => unlocked && router.push(`/game/${level.id}`)}
                 disabled={!unlocked}
                 activeOpacity={0.84}
               >
-                <View style={[styles.levelAccent, { backgroundColor: accent }]} />
+                {/* CABEÇALHO DO CARD */}
                 <View style={styles.levelTopRow}>
-                  <View style={[styles.levelBadge, !unlocked && styles.levelBadgeLocked]}>
-                    <Text style={styles.levelBadgeText}>{unlocked ? level.id : 'X'}</Text>
-                  </View>
+                  <LinearGradient
+                    colors={unlocked ? [gradStart, gradEnd] : ['#9CA3AF', '#6B7280']}
+                    style={styles.levelBadge}
+                  >
+                    <Text style={styles.levelBadgeEmoji}>{unlocked ? emoji : '🔒'}</Text>
+                  </LinearGradient>
+
                   <View style={styles.levelCopy}>
-                    <Text style={[styles.levelSubtitle, !unlocked && styles.muted]}>{level.district}</Text>
+                    <Text style={[styles.levelDistrict, !unlocked && styles.muted]}>{level.district}</Text>
                     <Text style={[styles.levelTitle, !unlocked && styles.mutedStrong]}>{level.name}</Text>
                   </View>
-                  <View style={styles.threatChip}>
+
+                  <View style={[styles.threatChip, { borderColor }]}>
                     <Text style={styles.threatChipText}>{level.threatLevel}</Text>
                   </View>
                 </View>
 
+                {/* OBJETIVO */}
                 <Text style={[styles.levelObjective, !unlocked && styles.muted]}>{level.objective}</Text>
 
+                {/* META */}
                 <View style={styles.levelMetaRow}>
                   <Text style={[styles.levelMetaText, !unlocked && styles.muted]}>
-                    Insignia: {level.badge.name}
+                    🏅 {level.badge.name}
                   </Text>
                   <Text style={[styles.levelMetaText, !unlocked && styles.muted]}>
-                    Bonus: {level.bonusObjective.title}
+                    🎯 {level.bonusObjective.title}
                   </Text>
                 </View>
 
+                {/* RESULTADO OU CTA */}
                 {levelData?.completed ? (
                   <View style={styles.completedRow}>
                     <StarRatingDisplay stars={levelData.stars} size={16} />
-                    <Text style={styles.completedText}>Melhor pontuacao {levelData.highScore}</Text>
+                    <Text style={styles.completedText}>Melhor: {levelData.highScore} pts</Text>
                   </View>
+                ) : unlocked ? (
+                  <LinearGradient
+                    colors={[gradStart, gradEnd]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.playButton}
+                  >
+                    <Text style={styles.playButtonText}>Jogar agora  →</Text>
+                  </LinearGradient>
                 ) : (
-                  <Text style={[styles.pendingText, !unlocked && styles.muted]}>
-                    {unlocked ? 'Pronto para iniciar esta operacao.' : 'Conclua a missao anterior para liberar.'}
-                  </Text>
+                  <Text style={styles.lockedText}>🔒 Conclua a missão anterior para liberar</Text>
                 )}
               </TouchableOpacity>
             );
           })}
         </ScrollView>
-      </SafeAreaView>
-    </ImageBackground>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  root: {
+    flex: 1,
+    backgroundColor: '#0a0806', // fallback sólido para antes da imagem carregar
+  },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(12, 11, 10, 0.28)',
+    backgroundColor: 'rgba(10, 8, 6, 0.38)',
   },
   safe: {
     flex: 1,
     alignItems: 'stretch',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: 14,
+    paddingBottom: 8,
   },
+
+  // HEADER
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingTop: 6,
+    paddingBottom: 10,
   },
   backBtn: {
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(246, 240, 226, 0.94)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: 'rgba(255,255,255,0.9)',
     borderWidth: 1,
-    borderColor: '#CCBEA3',
+    borderColor: '#D1D5DB',
   },
   backText: {
-    color: '#3B2F1E',
+    color: '#1F2937',
     fontSize: 12,
     fontWeight: '700',
   },
   headerTitle: {
-    color: '#FFF8EA',
-    fontSize: 26,
+    color: '#FFFFFF',
+    fontSize: 24,
     fontWeight: '900',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   scoreBadge: {
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    backgroundColor: 'rgba(246, 240, 226, 0.94)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    backgroundColor: 'rgba(255,255,255,0.9)',
     borderWidth: 1,
-    borderColor: '#CCBEA3',
+    borderColor: '#D1D5DB',
   },
   scoreBadgeText: {
-    color: '#3B2F1E',
+    color: '#1F2937',
     fontSize: 12,
     fontWeight: '800',
   },
+
+  // SUMMARY CARD
   summaryCard: {
-    width: '100%',
     flexDirection: 'row',
-    gap: 14,
+    gap: 12,
     alignItems: 'center',
-    borderRadius: 24,
-    backgroundColor: 'rgba(246, 240, 226, 0.97)',
-    borderWidth: 1,
-    borderColor: '#CCBEA3',
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,253,248,0.97)',
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
+    padding: 14,
+    marginBottom: 10,
   },
   summaryCopy: {
     flex: 1,
   },
   summaryEyebrow: {
-    color: '#7C6A4A',
+    color: '#16A34A',
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   summaryTitle: {
-    color: '#241C13',
-    fontSize: 22,
+    color: '#14532D',
+    fontSize: 20,
     fontWeight: '900',
-    marginTop: 4,
+    marginTop: 2,
   },
   summaryText: {
-    color: '#5B4D3B',
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 4,
+    color: '#4B5563',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
   },
   summaryBadge: {
-    width: 76,
-    borderRadius: 18,
-    paddingVertical: 12,
-    backgroundColor: '#EFE4CA',
-    borderWidth: 1,
-    borderColor: '#D0B986',
+    width: 68,
+    borderRadius: 14,
+    paddingVertical: 10,
+    backgroundColor: '#DCFCE7',
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
     alignItems: 'center',
   },
   summaryBadgeValue: {
-    color: '#3A2E1E',
-    fontSize: 20,
+    color: '#14532D',
+    fontSize: 18,
     fontWeight: '900',
   },
   summaryBadgeLabel: {
-    color: '#756245',
-    fontSize: 11,
+    color: '#16A34A',
+    fontSize: 10,
     fontWeight: '700',
   },
+
+  // TRAINING CARD
   trainingCard: {
-    width: '100%',
-    borderRadius: 22,
-    padding: 16,
-    backgroundColor: 'rgba(255, 249, 238, 0.96)',
-    borderWidth: 1,
-    borderColor: '#E0D5BF',
-    marginBottom: 12,
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginBottom: 10,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  trainingGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  trainingEmoji: {
+    fontSize: 28,
+  },
+  trainingCopy: {
+    flex: 1,
   },
   trainingTitle: {
-    color: '#241C13',
-    fontSize: 18,
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '900',
-    marginTop: 4,
   },
   trainingText: {
-    color: '#5B4D3B',
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 4,
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 1,
+  },
+  trainingArrow: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: '900',
+  },
+
+  // SCROLL
+  scrollView: {
+    backgroundColor: 'transparent',
   },
   scrollContent: {
-    width: '100%',
     alignItems: 'stretch',
-    paddingBottom: 32,
-    gap: 12,
+    paddingBottom: 24,
+    gap: 10,
   },
+
+  // LEVEL CARD
   levelCard: {
     width: '100%',
-    borderRadius: 22,
-    backgroundColor: 'rgba(246, 240, 226, 0.98)',
-    borderWidth: 1,
-    borderColor: '#CCBEA3',
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    padding: 14,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   levelCardLocked: {
-    opacity: 0.72,
-  },
-  levelAccent: {
-    width: 52,
-    height: 6,
-    borderRadius: 999,
-    marginBottom: 12,
+    opacity: 0.65,
   },
   levelTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   levelBadge: {
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
     borderRadius: 16,
-    backgroundColor: '#E8DFC8',
-    borderWidth: 1,
-    borderColor: '#BAA27A',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  levelBadgeLocked: {
-    backgroundColor: '#E9E0D8',
-  },
-  levelBadgeText: {
-    color: '#3B2F1E',
-    fontSize: 20,
-    fontWeight: '900',
+  levelBadgeEmoji: {
+    fontSize: 26,
   },
   levelCopy: {
     flex: 1,
   },
-  levelSubtitle: {
-    color: '#756245',
+  levelDistrict: {
+    color: '#6B7280',
     fontSize: 11,
     fontWeight: '700',
   },
   levelTitle: {
-    color: '#241C13',
-    fontSize: 19,
+    color: '#111827',
+    fontSize: 18,
     fontWeight: '900',
     marginTop: 1,
   },
   threatChip: {
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: '#FFF9EE',
+    paddingVertical: 5,
+    backgroundColor: 'rgba(255,255,255,0.8)',
     borderWidth: 1,
-    borderColor: '#D6CAB2',
   },
   threatChipText: {
-    color: '#5B4D3B',
+    color: '#374151',
     fontSize: 11,
     fontWeight: '800',
   },
   levelObjective: {
-    color: '#4B4032',
+    color: '#374151',
     fontSize: 13,
-    lineHeight: 19,
-    marginTop: 12,
+    lineHeight: 18,
   },
   levelMetaRow: {
-    gap: 4,
-    marginTop: 10,
+    flexDirection: 'row',
+    gap: 12,
+    flexWrap: 'wrap',
   },
   levelMetaText: {
-    color: '#756245',
+    color: '#6B7280',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -348,23 +420,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 12,
+    marginTop: 2,
   },
   completedText: {
-    color: '#5B7F63',
+    color: '#16A34A',
     fontSize: 12,
     fontWeight: '700',
   },
-  pendingText: {
-    color: '#756245',
+  playButton: {
+    borderRadius: 12,
+    paddingVertical: 11,
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  playButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  lockedText: {
+    color: '#9CA3AF',
     fontSize: 12,
     fontWeight: '600',
-    marginTop: 12,
+    marginTop: 2,
   },
   muted: {
-    color: '#90816D',
+    color: '#9CA3AF',
   },
   mutedStrong: {
-    color: '#6E6250',
+    color: '#6B7280',
   },
 });

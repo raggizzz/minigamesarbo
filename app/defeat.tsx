@@ -3,10 +3,10 @@
 // ============================================
 
 import React from 'react';
-import { ImageBackground, StyleSheet, Text } from 'react-native';
+import { ImageBackground, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getLevelConfig } from '../src/data/levels';
 import { GameButton } from '../src/components/ui/GameButton';
@@ -41,6 +41,7 @@ export default function DefeatScreen() {
   const levelId = parseInt(params.levelId || '1', 10) as LevelId;
   const levelConfig = getLevelConfig(levelId);
   const reason = DEFEAT_REASONS[params.reason || 'time'] || DEFEAT_REASONS.time;
+  const insets = useSafeAreaInsets();
 
   return (
     <ImageBackground
@@ -54,7 +55,7 @@ export default function DefeatScreen() {
         style={StyleSheet.absoluteFill}
       />
 
-      <SafeAreaView style={styles.safe}>
+      <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <Animated.View entering={FadeInUp.delay(200).springify()}>
           <Text style={styles.icon}>{reason.emoji}</Text>
         </Animated.View>
@@ -93,13 +94,13 @@ export default function DefeatScreen() {
             fullWidth
           />
         </Animated.View>
-      </SafeAreaView>
+      </View>
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#000' },
   safe: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   icon: { fontSize: 70, marginBottom: 12 },
   titleContainer: { alignItems: 'center', marginBottom: 22 },

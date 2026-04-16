@@ -6,7 +6,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, ImageBackground } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GameButton } from '../src/components/ui/GameButton';
 
@@ -23,20 +23,22 @@ const INSTRUCTIONS = [
 
 export default function HowToPlayScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
-    <ImageBackground
-      source={require('../assets/images/game/bg_menu.png')}
-      style={styles.container}
-      resizeMode="cover"
-    >
+    <View style={styles.container}>
+      <ImageBackground
+        source={require('../assets/images/game/bg_menu.png')}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      />
       <LinearGradient
         colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
         locations={[0, 0.5, 1]}
         style={StyleSheet.absoluteFill}
       />
 
-      <SafeAreaView style={styles.safe}>
+      <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <Text style={styles.title}>📖 Como Jogar</Text>
 
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}
@@ -59,20 +61,20 @@ export default function HowToPlayScreen() {
         <View style={styles.btnWrap}>
           <GameButton title="← Voltar" onPress={() => router.back()} variant="ghost" size="md" fullWidth />
         </View>
-      </SafeAreaView>
-    </ImageBackground>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#000' },
   safe: { flex: 1, padding: 20 },
   title: {
     fontSize: 28, fontWeight: '900', color: '#FFF', textAlign: 'center', marginBottom: 16,
     letterSpacing: 1,
     textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6,
   },
-  scroll: { flex: 1 },
+  scroll: { flex: 1, backgroundColor: 'transparent' },
   scrollContent: { paddingBottom: 20, gap: 10 },
   card: {
     flexDirection: 'row', alignItems: 'center', gap: 14,

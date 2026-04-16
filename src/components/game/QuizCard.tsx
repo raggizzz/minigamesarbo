@@ -1,6 +1,6 @@
 // ============================================
 // ArboGame - Quiz Card (Level 3)
-// Triage sheet with faster educational feedback
+// Triage sheet with educational feedback
 // ============================================
 
 import React, { useState } from 'react';
@@ -13,7 +13,7 @@ import Animated, {
   withSequence,
   withSpring,
 } from 'react-native-reanimated';
-import { SIZES, SHADOWS } from '../../styles/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 import { QuizOption, QuizQuestion } from '../../types/game';
 
 interface QuizCardProps {
@@ -23,11 +23,11 @@ interface QuizCardProps {
   onAnswer: (isCorrect: boolean) => void;
 }
 
-const CATEGORY_LABELS: Record<QuizQuestion['category'], string> = {
-  sintoma: 'Sinais clinicos',
-  prevencao: 'Prevencao',
-  acao: 'Conduta',
-  alerta: 'Alerta',
+const CATEGORY_META: Record<QuizQuestion['category'], { label: string; emoji: string; color: string; bg: string }> = {
+  sintoma:   { label: 'Sinais Clínicos', emoji: '🩺', color: '#0E7490', bg: '#ECFEFF' },
+  prevencao: { label: 'Prevenção',       emoji: '🛡️', color: '#16A34A', bg: '#F0FDF4' },
+  acao:      { label: 'Conduta',         emoji: '⚡', color: '#D97706', bg: '#FFFBEB' },
+  alerta:    { label: 'Alerta',          emoji: '🚨', color: '#DC2626', bg: '#FFF1F2' },
 };
 
 export const QuizCard: React.FC<QuizCardProps> = ({
@@ -40,6 +40,8 @@ export const QuizCard: React.FC<QuizCardProps> = ({
   const [showResult, setShowResult] = useState(false);
   const scale = useSharedValue(1);
 
+  const meta = CATEGORY_META[question.category];
+
   const handleSelect = (option: QuizOption) => {
     if (showResult) return;
 
@@ -47,7 +49,7 @@ export const QuizCard: React.FC<QuizCardProps> = ({
     setShowResult(true);
 
     scale.value = withSequence(
-      withSpring(0.98, { damping: 11 }),
+      withSpring(0.97, { damping: 11 }),
       withSpring(1, { damping: 13 })
     );
 
@@ -60,11 +62,8 @@ export const QuizCard: React.FC<QuizCardProps> = ({
 
   const getOptionStyle = (option: QuizOption) => {
     if (!showResult) {
-      return selectedId === option.id
-        ? styles.optionSelected
-        : styles.optionDefault;
+      return selectedId === option.id ? styles.optionSelected : styles.optionDefault;
     }
-
     if (option.isCorrect) return styles.optionCorrect;
     if (selectedId === option.id && !option.isCorrect) return styles.optionWrong;
     return styles.optionDefault;
@@ -81,32 +80,38 @@ export const QuizCard: React.FC<QuizCardProps> = ({
     transform: [{ scale: scale.value }],
   }));
 
+  const progressPct = (questionNumber / totalQuestions) * 100;
+
   return (
-    <Animated.View entering={SlideInRight.duration(320)} style={[styles.container, cardStyle]}>
+    <Animated.View entering={SlideInRight.duration(280)} style={[styles.container, cardStyle]}>
       <View style={styles.sheet}>
+        {/* HEADER */}
         <View style={styles.headerRow}>
-          <View style={styles.categoryChip}>
-            <Text style={styles.categoryText}>{CATEGORY_LABELS[question.category]}</Text>
+          <View style={[styles.categoryChip, { backgroundColor: meta.bg, borderColor: meta.color }]}>
+            <Text style={styles.categoryEmoji}>{meta.emoji}</Text>
+            <Text style={[styles.categoryText, { color: meta.color }]}>{meta.label}</Text>
           </View>
           <View style={styles.progressChip}>
             <Text style={styles.progressChipText}>{questionNumber}/{totalQuestions}</Text>
           </View>
         </View>
 
+        {/* BARRA DE PROGRESSO */}
         <View style={styles.progressTrack}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${(questionNumber / totalQuestions) * 100}%` },
-            ]}
+          <LinearGradient
+            colors={['#22C55E', '#16A34A']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.progressFill, { width: `${progressPct}%` }]}
           />
         </View>
 
+        {/* PERGUNTA */}
         <View style={styles.questionBlock}>
-          <Text style={styles.questionEyebrow}>FICHA DE TRIAGEM</Text>
           <Text style={styles.questionText}>{question.question}</Text>
         </View>
 
+        {/* OPÇÕES */}
         <View style={styles.optionsContainer}>
           {question.options.map((option, index) => (
             <TouchableOpacity
@@ -116,35 +121,42 @@ export const QuizCard: React.FC<QuizCardProps> = ({
               activeOpacity={0.78}
               disabled={showResult}
             >
-              <View style={styles.optionIndex}>
-                <Text style={styles.optionIndexText}>{index + 1}</Text>
+              <View style={[
+                styles.optionIndex,
+                showResult && option.isCorrect && styles.optionIndexCorrect,
+                showResult && selectedId === option.id && !option.isCorrect && styles.optionIndexWrong,
+              ]}>
+                <Text style={styles.optionIndexText}>
+                  {showResult && option.isCorrect ? '✓' : showResult && selectedId === option.id && !option.isCorrect ? '✗' : String(index + 1)}
+                </Text>
               </View>
               <Text style={[styles.optionText, getOptionTextStyle(option)]}>
                 {option.text}
               </Text>
-              {showResult && option.isCorrect ? (
-                <Text style={styles.resultMarkCorrect}>OK</Text>
-              ) : null}
-              {showResult && selectedId === option.id && !option.isCorrect ? (
-                <Text style={styles.resultMarkWrong}>X</Text>
-              ) : null}
             </TouchableOpacity>
           ))}
         </View>
 
+        {/* EXPLICAÇÃO OU DICA */}
         {showResult ? (
-          <Animated.View entering={FadeIn.duration(220)} style={styles.explanationBand}>
+          <Animated.View
+            entering={FadeIn.duration(200)}
+            style={[
+              styles.explanationBand,
+              question.options.find((o) => o.id === selectedId)?.isCorrect
+                ? styles.explanationBandCorrect
+                : styles.explanationBandWrong,
+            ]}
+          >
             <Text style={styles.explanationTitle}>
-              {question.options.find((option) => option.id === selectedId)?.isCorrect
-                ? 'Orientacao confirmada'
-                : 'Reforce o aprendizado'}
+              {question.options.find((o) => o.id === selectedId)?.isCorrect ? '✅ Correto!' : '❌ Atenção!'}
             </Text>
             <Text style={styles.explanationText}>{question.explanation}</Text>
           </Animated.View>
         ) : (
           <View style={styles.footerNote}>
             <Text style={styles.footerNoteText}>
-              Leia com calma e escolha a orientacao mais segura para a comunidade.
+              💡 Escolha a orientação mais segura para a comunidade.
             </Text>
           </View>
         )}
@@ -157,18 +169,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   sheet: {
-    borderRadius: SIZES.radiusXL,
-    backgroundColor: 'rgba(246, 240, 226, 0.97)',
-    borderWidth: 1,
-    borderColor: '#D1C3A7',
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
     padding: 14,
     gap: 10,
-    ...SHADOWS.medium,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 14,
+    elevation: 8,
   },
+
+  // HEADER
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -176,92 +194,95 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: '#F7EEDC',
-    borderWidth: 1,
-    borderColor: '#C8B389',
+    borderWidth: 1.5,
+  },
+  categoryEmoji: {
+    fontSize: 13,
   },
   categoryText: {
-    color: '#5C4A33',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.6,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.4,
   },
   progressChip: {
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: '#E7D9B9',
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   progressChipText: {
-    color: '#3E2F1D',
-    fontSize: 10,
-    fontWeight: '900',
+    color: '#374151',
+    fontSize: 11,
+    fontWeight: '800',
   },
+
+  // BARRA
   progressTrack: {
     height: 6,
     borderRadius: 999,
-    backgroundColor: '#E9DFC9',
+    backgroundColor: '#F3F4F6',
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: '#9E7A42',
   },
+
+  // PERGUNTA
   questionBlock: {
     borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 16,
-    backgroundColor: '#FFFDFC',
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    backgroundColor: '#F9FAFB',
     borderWidth: 1,
-    borderColor: '#DED2BA',
+    borderColor: '#E5E7EB',
     alignItems: 'center',
   },
-  questionEyebrow: {
-    color: '#7C6A4A',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.7,
-    marginBottom: 6,
-  },
   questionText: {
-    color: '#2F261B',
-    fontSize: 24,
-    lineHeight: 32,
+    color: '#111827',
+    fontSize: 22,
+    lineHeight: 30,
     fontWeight: '800',
     textAlign: 'center',
   },
+
+  // OPÇÕES
   optionsContainer: {
-    gap: 8,
+    gap: 7,
   },
   option: {
-    minHeight: 58,
-    borderRadius: 16,
+    minHeight: 54,
+    borderRadius: 14,
     borderWidth: 1.5,
     paddingHorizontal: 12,
     paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#FFFDFC',
   },
   optionDefault: {
-    borderColor: '#D8C9AE',
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
   },
   optionSelected: {
-    borderColor: '#9D7A43',
-    backgroundColor: '#FBF4E5',
+    borderColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
   },
   optionCorrect: {
-    borderColor: '#7F9B79',
-    backgroundColor: '#EAF2E6',
+    borderColor: '#22C55E',
+    backgroundColor: '#F0FDF4',
   },
   optionWrong: {
-    borderColor: '#B77A69',
-    backgroundColor: '#F8ECE7',
+    borderColor: '#EF4444',
+    backgroundColor: '#FFF1F2',
   },
   optionIndex: {
     width: 30,
@@ -269,75 +290,82 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F1E5CC',
+    backgroundColor: '#F3F4F6',
     borderWidth: 1,
-    borderColor: '#C8B389',
+    borderColor: '#E5E7EB',
+  },
+  optionIndexCorrect: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#22C55E',
+  },
+  optionIndexWrong: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#EF4444',
   },
   optionIndexText: {
-    color: '#5B4A35',
-    fontSize: 12,
+    color: '#374151',
+    fontSize: 13,
     fontWeight: '900',
   },
   optionText: {
     flex: 1,
-    color: '#2E261C',
-    fontSize: 17,
-    lineHeight: 22,
+    color: '#1F2937',
+    fontSize: 16,
+    lineHeight: 21,
     fontWeight: '700',
   },
   optionTextCorrect: {
     flex: 1,
-    color: '#395441',
-    fontSize: 17,
-    lineHeight: 22,
+    color: '#15803D',
+    fontSize: 16,
+    lineHeight: 21,
     fontWeight: '800',
   },
   optionTextWrong: {
     flex: 1,
-    color: '#7B3F36',
-    fontSize: 17,
-    lineHeight: 22,
+    color: '#B91C1C',
+    fontSize: 16,
+    lineHeight: 21,
     fontWeight: '800',
   },
-  resultMarkCorrect: {
-    color: '#395441',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  resultMarkWrong: {
-    color: '#7B3F36',
-    fontSize: 14,
-    fontWeight: '900',
-  },
+
+  // EXPLICAÇÃO
   explanationBand: {
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#FFF9EE',
-    borderWidth: 1,
-    borderColor: '#DED2BA',
     gap: 4,
+    borderWidth: 1.5,
+  },
+  explanationBandCorrect: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
+  explanationBandWrong: {
+    backgroundColor: '#FFF1F2',
+    borderColor: '#FCA5A5',
   },
   explanationTitle: {
-    color: '#2F261B',
-    fontSize: 11,
+    color: '#111827',
+    fontSize: 12,
     fontWeight: '900',
-    letterSpacing: 0.5,
   },
   explanationText: {
-    color: '#564737',
+    color: '#374151',
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '600',
   },
   footerNote: {
-    borderRadius: 14,
+    borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: '#F3E9D3',
+    paddingVertical: 9,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
   },
   footerNoteText: {
-    color: '#5A4B37',
+    color: '#92400E',
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '600',
