@@ -81,19 +81,16 @@ export const TappableHazard: React.FC<TappableHazardProps> = ({
 
   React.useEffect(() => {
     if (!hazard.solved) {
+      // reverse: true evita o salto brusco de duration:0 no reset
       ringScale.value = withRepeat(
-        withSequence(
-          withTiming(1.7, { duration: 850, easing: Easing.out(Easing.ease) }),
-          withTiming(1, { duration: 0 })
-        ),
-        -1
+        withTiming(1.7, { duration: 900, easing: Easing.out(Easing.ease) }),
+        -1,
+        true
       );
       ringOpacity.value = withRepeat(
-        withSequence(
-          withTiming(0, { duration: 850 }),
-          withTiming(0.8, { duration: 0 })
-        ),
-        -1
+        withTiming(0, { duration: 900, easing: Easing.out(Easing.ease) }),
+        -1,
+        true
       );
     }
   }, [hazard.solved, ringOpacity, ringScale]);

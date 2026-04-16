@@ -3,7 +3,7 @@
 // Full-screen responsive + scene-integrated
 // ============================================
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Dimensions,
   TouchableOpacity, Image,
@@ -550,7 +550,10 @@ export default function GameplayScreen() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(Date.now());
   const lastActionTimeRef = useRef<number>(Date.now());
-  const [sceneLayout, setSceneLayout] = useState({ width: SCREEN_W, height: SCREEN_H });
+  // Inicializa com 0 — o conteúdo do jogo só renderiza após o onLayout
+  // medir o tamanho real, evitando o salto visual na primeira frame.
+  const [sceneLayout, setSceneLayout] = useState({ width: 0, height: 0 });
+  const sceneReady = sceneLayout.width > 0 && sceneLayout.height > 0;
   const [missionProgress, setMissionProgress] = useState('');
   const [showBriefing, setShowBriefing] = useState(true);
   const [defeatReason, setDefeatReason] = useState<'lives' | 'time' | 'infestation' | 'knowledge'>('time');
@@ -619,25 +622,25 @@ export default function GameplayScreen() {
     };
   }, []);
 
-  const showFeedback = (type: 'correct' | 'wrong') => {
+  const showFeedback = useCallback((type: 'correct' | 'wrong') => {
     if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
     setFeedbackType(type);
-    feedbackScale.value = 0.96;
+    feedbackScale.value = 1;
     feedbackOpacity.value = 0;
+    // Sem spring — só timing suave para não tremer
     feedbackScale.value = withSequence(
-      withTiming(1, { duration: 90 }),
-      withSpring(1.03, { damping: 12, stiffness: 220 }),
-      withTiming(0.98, { duration: 120 })
+      withTiming(1.04, { duration: 80 }),
+      withTiming(1, { duration: 160 })
     );
     feedbackOpacity.value = withSequence(
-      withTiming(1, { duration: 70 }),
-      withTiming(0, { duration: 240 })
+      withTiming(1, { duration: 60 }),
+      withTiming(0, { duration: 260 })
     );
     feedbackTimeoutRef.current = setTimeout(() => {
       setFeedbackType(null);
       feedbackTimeoutRef.current = null;
-    }, 330);
-  };
+    }, 340);
+  }, [feedbackOpacity, feedbackScale]);
 
   const handleCorrect = () => {
     const now = Date.now();
@@ -744,6 +747,14 @@ export default function GameplayScreen() {
   }
 
   const bgImage = LEVEL_BACKGROUNDS[levelId] || LEVEL_BACKGROUNDS[1];
+  // useCallback estável — evita re-criação a cada render e previne layout loops
+  const handleSceneLayout = useCallback((e: any) => {
+    const { width, height } = e.nativeEvent.layout;
+    setSceneLayout(prev =>
+      prev.width === width && prev.height === height ? prev : { width, height }
+    );
+  }, []);
+
   const isCompactViewport = sceneLayout.width <= 390 || sceneLayout.height <= 640;
 
   // ── Imagem quadrada: cabe totalmente em qualquer orientação ──
@@ -785,10 +796,7 @@ export default function GameplayScreen() {
         {/* Scene area — fills remaining space */}
         <View
           style={styles.sceneArea}
-          onLayout={(e) => {
-            const { width, height } = e.nativeEvent.layout;
-            setSceneLayout({ width, height });
-          }}
+          onLayout={handleSceneLayout}
         >
           {/* Fundo desfocado — cobre toda a sceneArea */}
           <Image
@@ -805,8 +813,8 @@ export default function GameplayScreen() {
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
-          {/* Background image — cover mode fills entire wrapper; offset is not needed with cover */}
-          <View
+          {/* Só renderiza conteúdo posicionado após medir o layout real */}
+          {sceneReady && <><View
             pointerEvents="none"
             style={[styles.sceneBgImageWrapper, {
               top: imgOffsetY,
@@ -896,6 +904,7 @@ export default function GameplayScreen() {
               compact={isCompactViewport}
             />
           ) : null}
+          </>}
         </View>
 
         {/* Feedback flash */}
