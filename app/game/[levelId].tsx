@@ -755,15 +755,21 @@ export default function GameplayScreen() {
   const bgImage = LEVEL_BACKGROUNDS[levelId] || LEVEL_BACKGROUNDS[1];
   // useCallback estável — evita re-criação a cada render e previne layout loops
   const isCompactViewport = sceneLayout.width <= 390 || sceneLayout.height <= 640;
+  const isDesktopViewport = sceneLayout.width >= 900 && sceneLayout.height >= 680;
 
   // ── Imagem quadrada: cabe totalmente em qualquer orientação ──
   // imgSize = menor dimensão → portrait: usa largura; landscape/PC: usa altura.
   // Centraliza nos dois eixos para sempre mostrar a imagem inteira.
-  const imgSize = Math.min(sceneLayout.width, sceneLayout.height);
+  const imgMaxWidth = isDesktopViewport ? sceneLayout.width * 0.76 : sceneLayout.width;
+  const imgMaxHeight = isDesktopViewport ? sceneLayout.height * 0.9 : sceneLayout.height;
+  const imgSize = Math.min(imgMaxWidth, imgMaxHeight);
   const imgRenderW = imgSize;
   const imgRenderH = imgSize;
   const imgOffsetX = (sceneLayout.width - imgSize) / 2;
   const imgOffsetY = (sceneLayout.height - imgSize) / 2;
+  const backdropBlur = isDesktopViewport ? 6 : 20;
+  const backdropOpacity = isDesktopViewport ? 0.28 : 0.62;
+  const sceneOverlayOpacity = isDesktopViewport ? 0.14 : 0.22;
   const deskStats = [
     { label: 'Tempo', value: `${gameState.timeRemaining}s` },
     { label: 'Vidas', value: `${gameState.lives}` },
@@ -800,14 +806,21 @@ export default function GameplayScreen() {
           {/* Fundo desfocado — cobre toda a sceneArea */}
           <Image
             source={bgImage}
-            style={styles.sceneBackdrop}
+            style={[styles.sceneBackdrop, { opacity: backdropOpacity }]}
             resizeMode="cover"
-            blurRadius={20}
+            blurRadius={backdropBlur}
           />
           {/* Overlay escuro para legibilidade */}
-          <View style={styles.sceneOverlay} pointerEvents="none" />
+          <View
+            style={[styles.sceneOverlay, { backgroundColor: `rgba(0,0,0,${sceneOverlayOpacity})` }]}
+            pointerEvents="none"
+          />
           <LinearGradient
-            colors={['rgba(0,0,0,0.65)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.55)']}
+            colors={
+              isDesktopViewport
+                ? ['rgba(0,0,0,0.42)', 'rgba(0,0,0,0.02)', 'rgba(0,0,0,0.28)']
+                : ['rgba(0,0,0,0.65)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.55)']
+            }
             locations={[0, 0.38, 1]}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
@@ -822,7 +835,7 @@ export default function GameplayScreen() {
               height: imgRenderH,
               overflow: 'hidden',
               backgroundColor: '#000',
-            }]}
+            }, isDesktopViewport && styles.sceneBgImageWrapperDesktop]}
           >
             <Image
               source={bgImage}
@@ -976,6 +989,16 @@ const styles = StyleSheet.create({
   },
   sceneBgImageWrapper: {
     position: 'absolute',
+  },
+  sceneBgImageWrapperDesktop: {
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.28,
+    shadowRadius: 24,
+    elevation: 16,
   },
   hazardLayer: {
     position: 'absolute',

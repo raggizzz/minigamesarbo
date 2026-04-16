@@ -204,6 +204,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   scroll: {
+    width: '100%',
+    maxWidth: 920,
+    alignSelf: 'center',
     paddingHorizontal: 16,
     gap: 14,
   },

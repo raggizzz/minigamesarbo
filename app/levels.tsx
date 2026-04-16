@@ -192,6 +192,9 @@ const styles = StyleSheet.create({
   },
   safe: {
     flex: 1,
+    width: '100%',
+    maxWidth: 980,
+    alignSelf: 'center',
     alignItems: 'stretch',
     paddingHorizontal: 14,
     paddingBottom: 8,
